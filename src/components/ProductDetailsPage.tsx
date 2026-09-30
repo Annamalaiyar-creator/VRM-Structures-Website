@@ -106,85 +106,97 @@ function RCCRoof3DViewer({ url, zoom = 1.0 }: { url: string; zoom?: number }) {
     loader.setDRACOLoader(dracoLoader);
     let loadedObj: THREE.Group | THREE.Object3D | null = null;
 
-    loader.load(
-      url,
-      (gltf) => {
-        const obj = gltf.scene;
-        loadedObj = obj;
-        const box = new THREE.Box3().setFromObject(obj);
-        const size = new THREE.Vector3();
-        box.getSize(size);
-        const maxDim = Math.max(size.x, size.y, size.z);
-        const center = new THREE.Vector3();
-        box.getCenter(center);
+    const tryLoad = (modelUrl: string, isFallback: boolean = false) => {
+      loader.load(
+        modelUrl,
+        (gltf) => {
+          const obj = gltf.scene;
+          loadedObj = obj;
+          const box = new THREE.Box3().setFromObject(obj);
+          const size = new THREE.Vector3();
+          box.getSize(size);
+          const maxDim = Math.max(size.x, size.y, size.z);
+          const center = new THREE.Vector3();
+          box.getCenter(center);
 
-        const scaleFactor = (2.2 * zoom) / (maxDim || 1);
-        obj.scale.set(scaleFactor, scaleFactor, scaleFactor);
+          const scaleFactor = (2.2 * zoom) / (maxDim || 1);
+          obj.scale.set(scaleFactor, scaleFactor, scaleFactor);
 
-        obj.position.x = -center.x * scaleFactor;
-        obj.position.y = -center.y * scaleFactor;
-        obj.position.z = -center.z * scaleFactor;
+          obj.position.x = -center.x * scaleFactor;
+          obj.position.y = -center.y * scaleFactor;
+          obj.position.z = -center.z * scaleFactor;
 
-        obj.traverse((child) => {
-          if (child instanceof THREE.Mesh) {
-            child.castShadow = true;
-            child.receiveShadow = true;
-            if (child.geometry) {
-              child.geometry.computeVertexNormals();
+          obj.traverse((child) => {
+            if (child instanceof THREE.Mesh) {
+              child.castShadow = true;
+              child.receiveShadow = true;
+              if (child.geometry) {
+                child.geometry.computeVertexNormals();
+              }
+
+              const name = (child.name || "").toLowerCase();
+              const isHandrail = url.toLowerCase().includes("handrail");
+              const isWalkway = url.toLowerCase().includes("walk_way") || url.toLowerCase().includes("walkway");
+              const isPanel = name.includes("panel") || name.includes("solar") || name.includes("glass") || name.includes("pv");
+              const isFrame = name.includes("frame") || name.includes("clamp") || name.includes("bolt");
+
+              if (isHandrail) {
+                const isCup = name.includes("cup");
+                child.material = new THREE.MeshPhongMaterial({
+                  color: isCup ? new THREE.Color("#DC2626") : new THREE.Color("#FBBF24"), // Red for cup, Safety Yellow for others
+                  specular: new THREE.Color("#FFFFFF"),
+                  shininess: isCup ? 85 : 40,
+                  side: THREE.DoubleSide
+                });
+              } else if (isWalkway) {
+                child.material = new THREE.MeshPhongMaterial({
+                  color: new THREE.Color("#FBBF24"), // Safety Yellow for Walkway
+                  specular: new THREE.Color("#FFFFFF"),
+                  shininess: 45,
+                  side: THREE.DoubleSide
+                });
+              } else if (isPanel) {
+                child.material = new THREE.MeshPhongMaterial({
+                  color: new THREE.Color("#0A192F"),
+                  specular: new THREE.Color("#38BDF8"),
+                  shininess: 120,
+                  side: THREE.DoubleSide
+                });
+              } else if (isFrame) {
+                child.material = new THREE.MeshPhongMaterial({
+                  color: new THREE.Color("#E2E8F0"), // Shining aluminum base
+                  specular: new THREE.Color("#FFFFFF"), // Bright highlight
+                  shininess: 130, // High shininess (smooth / reduced roughness)
+                  side: THREE.DoubleSide
+                });
+              } else {
+                child.material = new THREE.MeshPhongMaterial({
+                  color: new THREE.Color("#E2E8F0"),
+                  specular: new THREE.Color("#FFFFFF"),
+                  shininess: 130,
+                  side: THREE.DoubleSide
+                });
+              }
             }
+          });
 
-            const name = (child.name || "").toLowerCase();
-            const isHandrail = url.toLowerCase().includes("handrail");
-            const isWalkway = url.toLowerCase().includes("walk_way") || url.toLowerCase().includes("walkway");
-            const isPanel = name.includes("panel") || name.includes("solar") || name.includes("glass") || name.includes("pv");
-            const isFrame = name.includes("frame") || name.includes("clamp") || name.includes("bolt");
-
-            if (isHandrail) {
-              const isCup = name.includes("cup");
-              child.material = new THREE.MeshPhongMaterial({
-                color: isCup ? new THREE.Color("#DC2626") : new THREE.Color("#FBBF24"), // Red for cup, Safety Yellow for others
-                specular: new THREE.Color("#FFFFFF"),
-                shininess: isCup ? 85 : 40,
-                side: THREE.DoubleSide
-              });
-            } else if (isWalkway) {
-              child.material = new THREE.MeshPhongMaterial({
-                color: new THREE.Color("#FBBF24"), // Safety Yellow for Walkway
-                specular: new THREE.Color("#FFFFFF"),
-                shininess: 45,
-                side: THREE.DoubleSide
-              });
-            } else if (isPanel) {
-              child.material = new THREE.MeshPhongMaterial({
-                color: new THREE.Color("#0A192F"),
-                specular: new THREE.Color("#38BDF8"),
-                shininess: 120,
-                side: THREE.DoubleSide
-              });
-            } else if (isFrame) {
-              child.material = new THREE.MeshPhongMaterial({
-                color: new THREE.Color("#E2E8F0"), // Shining aluminum base
-                specular: new THREE.Color("#FFFFFF"), // Bright highlight
-                shininess: 130, // High shininess (smooth / reduced roughness)
-                side: THREE.DoubleSide
-              });
-            } else {
-              child.material = new THREE.MeshPhongMaterial({
-                color: new THREE.Color("#E2E8F0"),
-                specular: new THREE.Color("#FFFFFF"),
-                shininess: 130,
-                side: THREE.DoubleSide
-              });
-            }
+          scene.add(obj);
+          setIsLoaded(true);
+        },
+        undefined,
+        (err) => {
+          console.warn("Failed to load 3D model from:", modelUrl, err);
+          if (!isFallback) {
+            const fallbackUrl = modelUrl.startsWith("/public/")
+              ? modelUrl.replace("/public/", "/")
+              : "/public" + modelUrl;
+            tryLoad(fallbackUrl, true);
           }
-        });
+        }
+      );
+    };
 
-        scene.add(obj);
-        setIsLoaded(true);
-      },
-      undefined,
-      (err) => console.error("Error loading 3D GLB model:", err)
-    );
+    tryLoad(url);
 
     let animationFrameId: number;
     const animate = () => {
