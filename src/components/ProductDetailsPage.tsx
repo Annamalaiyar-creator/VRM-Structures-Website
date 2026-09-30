@@ -28,6 +28,7 @@ import {
 } from "./Artworks";
 import ScrollDownButton from "./ScrollDownButton";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import * as THREE from "three";
 
@@ -100,6 +101,9 @@ function RCCRoof3DViewer({ url, zoom = 1.0 }: { url: string; zoom?: number }) {
     scene.add(dirLight2);
 
     const loader = new GLTFLoader();
+    const dracoLoader = new DRACOLoader();
+    dracoLoader.setDecoderPath("https://www.gstatic.com/draco/versioned/decoders/1.5.6/");
+    loader.setDRACOLoader(dracoLoader);
     let loadedObj: THREE.Group | THREE.Object3D | null = null;
 
     loader.load(

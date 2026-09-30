@@ -1,6 +1,7 @@
 import React, { useRef, useState, useLayoutEffect, useEffect } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 
 interface Product3DViewerProps {
@@ -91,6 +92,9 @@ export default function Product3DViewer({ url, zoom = 1.0, autoRotate = false, i
     scene.add(dirLight2);
 
     const loader = new GLTFLoader();
+    const dracoLoader = new DRACOLoader();
+    dracoLoader.setDecoderPath("https://www.gstatic.com/draco/versioned/decoders/1.5.6/");
+    loader.setDRACOLoader(dracoLoader);
     let loadedObj: THREE.Group | THREE.Object3D | null = null;
 
     loader.load(
