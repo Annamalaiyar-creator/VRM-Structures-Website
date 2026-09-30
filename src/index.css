@@ -1,0 +1,149 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Montserrat", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Montserrat", sans-serif;
+  
+  --animate-marquee-ltr: marquee-ltr 65s linear infinite;
+
+  /* Global theme override for custom brand blue #003579 representing high durability */
+  --color-slate-950: #000c1e; /* Darkest Navy Blue replacing slate-950 */
+  --color-slate-900: #00152e; /* Deep Navy Blue replacing slate-900 */
+  --color-slate-800: #002244; /* Dark Accent/Border replacing slate-800 */
+  --color-slate-700: #002d5c; /* Mid Accent replacing slate-700 */
+
+  --color-teal-50: #f0f7ff;
+  --color-teal-100: #e0f0fe;
+  --color-teal-200: #bae1ff;
+  --color-teal-300: #7cc8ff;
+  --color-teal-400: #003579;
+  --color-teal-500: #002d66;
+  --color-teal-600: #002452;
+  --color-teal-700: #001a3d;
+  --color-teal-800: #00112b;
+  --color-teal-900: #000a1c;
+
+  --color-emerald-50: #f0f7ff;
+  --color-emerald-100: #e0f0fe;
+  --color-emerald-200: #bae1ff;
+  --color-emerald-300: #7cc8ff;
+  --color-emerald-400: #003579;
+  --color-emerald-500: #002d66;
+  --color-emerald-600: #002452;
+  --color-emerald-700: #001a3d;
+  --color-emerald-800: #00112b;
+  --color-emerald-900: #000a1c;
+
+  --color-cyan-50: #f0f7ff;
+  --color-cyan-100: #e0f0fe;
+  --color-cyan-200: #bae1ff;
+  --color-cyan-300: #7cc8ff;
+  --color-cyan-400: #003579;
+  --color-cyan-500: #002d66;
+  --color-cyan-600: #002452;
+  --color-cyan-700: #001a3d;
+  --color-cyan-800: #00112b;
+  --color-cyan-900: #000a1c;
+
+  @keyframes marquee-ltr {
+    0% { transform: translate3d(-50%, 0, 0); }
+    100% { transform: translate3d(0, 0, 0); }
+  }
+
+  @keyframes gradientShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+}
+
+.animate-gradient-shift {
+  background-size: 300% 300% !important;
+  animation: gradientShift 3s linear infinite !important;
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+.no-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+/* Hide scrollbar default utility */
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.pause-on-hover:hover {
+  animation-play-state: paused;
+}
+
+/* Global letter spacing increase */
+html, body {
+  letter-spacing: 0.035em !important;
+}
+
+html {
+  scroll-behavior: smooth !important;
+}
+
+body, button, input, select, textarea, h1, h2, h3, h4, h5, h6, .font-sans, .font-display {
+  font-family: "Montserrat", sans-serif !important;
+}
+
+body {
+  background-color: #ffffff;
+  color: #1f2937;
+  overflow-x: clip !important;
+  overflow-clip-margin: 0px;
+  width: 100%;
+  max-width: 100vw;
+  -webkit-tap-highlight-color: transparent;
+}
+
+h1, h2, h3, h4, h5, h6, .h1, .h2, .h3 {
+  font-weight: 600 !important;
+}
+
+h1, .h1 {
+  font-size: 26px !important;
+}
+
+/* GPU Acceleration & Ultra-Smooth Section Animations */
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Smooth motion utility classes */
+.smooth-transition {
+  transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.smooth-gpu {
+  will-change: transform, opacity;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+/* Global body text legibility overrides (excluding headings) */
+p.font-light, span.font-light, li.font-light,
+p.font-extralight, span.font-extralight, li.font-extralight {
+  font-weight: 400 !important; /* Make light body text regular weight */
+}
+
+p.text-slate-500, span.text-slate-500, li.text-slate-500 {
+  color: #475569 !important; /* Make slate-500 body text darker for legibility */
+}
+
+p.text-slate-400, span.text-slate-400, li.text-slate-400 {
+  color: #576579 !important; /* Make slate-400 body text darker for legibility */
+}
