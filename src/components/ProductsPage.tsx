@@ -367,21 +367,21 @@ export default function ProductsPage({ onNavigate, selectedCategory, setSelected
                     {!prod.image ? (
                       <Suspense fallback={<div className="absolute inset-0 flex items-center justify-center text-slate-400 text-xs font-light">Loading 3D Model...</div>}>
                         {prod.title.toLowerCase().includes("galvanized") ? (
-                          <Product3DViewer url="/RCC.glb" autoRotate={true} />
+                          <Product3DViewer url="/RCC.bin" autoRotate={true} />
                         ) : prod.title.toLowerCase().includes("rcc") ? (
-                          <Product3DViewer url="/RCC_Design.glb" autoRotate={true} />
+                          <Product3DViewer url="/RCC_Design.bin" autoRotate={true} />
                         ) : prod.title.toLowerCase().includes("ground mounted") ? (
-                          <Product3DViewer url="/Ground Mounted.glb" zoom={1.3} autoRotate={true} />
+                          <Product3DViewer url="/Ground_Mounted.bin" zoom={1.3} autoRotate={true} />
                         ) : prod.title.toLowerCase().includes("carport") ? (
-                          <Product3DViewer url="/Carport_Design.glb" zoom={0.95} autoRotate={true} />
+                          <Product3DViewer url="/Carport_Design.bin" zoom={0.95} autoRotate={true} />
                         ) : prod.title.toLowerCase().includes("customized") ? (
-                          <Product3DViewer url="/Customized.glb" zoom={1.2} autoRotate={true} />
+                          <Product3DViewer url="/Customized.bin" zoom={1.2} autoRotate={true} />
                         ) : prod.title.toLowerCase().includes("aluminum") ? (
-                          <Product3DViewer url="/Aluminum.glb" zoom={0.8} autoRotate={true} />
+                          <Product3DViewer url="/Aluminum.bin" zoom={0.8} autoRotate={true} />
                         ) : prod.title.toLowerCase().includes("handrail") ? (
-                          <Product3DViewer url="/Handrail.glb" zoom={1.2} autoRotate={true} />
+                          <Product3DViewer url="/Handrail.bin" zoom={1.2} autoRotate={true} />
                         ) : prod.title.toLowerCase().includes("walkway") ? (
-                          <Product3DViewer url="/WALK_WAY.glb" zoom={1.2} autoRotate={true} />
+                          <Product3DViewer url="/WALK_WAY.bin" zoom={1.2} autoRotate={true} />
                         ) : (
                           <div className="text-slate-400 text-xs">No Model</div>
                         )}

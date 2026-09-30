@@ -2035,7 +2035,7 @@ export default function App() {
                     category: "Roof Mount",
                     material: "Galvanized Steel",
                     thickness: "2.0mm - 3.0mm",
-                    glb: "/RCC_Design.glb",
+                    glb: "/RCC_Design.bin",
                     zoom: 0.7
                   },
                   {
@@ -2046,7 +2046,7 @@ export default function App() {
                     category: "Special Structure",
                     material: "Aluminum Alloy",
                     thickness: "2.0mm - 3.0mm",
-                    glb: "/Customized.glb",
+                    glb: "/Customized.bin",
                     zoom: 0.8
                   },
                   {
@@ -2057,7 +2057,7 @@ export default function App() {
                     category: "Rooftop & Coastal",
                     material: "Aluminum Alloy",
                     thickness: "1.5mm - 2.0mm",
-                    glb: "/Aluminum.glb",
+                    glb: "/Aluminum.bin",
                     zoom: 0.6
                   },
                   {
@@ -2068,7 +2068,7 @@ export default function App() {
                     category: "Heavy Duty",
                     material: "Galvanized Steel",
                     thickness: "Over 3.0mm",
-                    glb: "/RCC.glb",
+                    glb: "/RCC.bin",
                     zoom: 0.7
                   },
                   {
@@ -2079,7 +2079,7 @@ export default function App() {
                     category: "Safety Access",
                     material: "FRP Composite",
                     thickness: "Over 3.0mm",
-                    glb: "/WALK_WAY.glb",
+                    glb: "/WALK_WAY.bin",
                     zoom: 0.75
                   },
                   {
@@ -2090,7 +2090,7 @@ export default function App() {
                     category: "Safety Access",
                     material: "FRP Composite",
                     thickness: "Over 3.0mm",
-                    glb: "/Handrail.glb",
+                    glb: "/Handrail.bin",
                     zoom: 0.75
                   }
                 ].map((prod: any, index) => {

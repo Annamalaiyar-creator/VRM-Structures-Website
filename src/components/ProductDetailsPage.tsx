@@ -986,21 +986,21 @@ export default function ProductDetailsPage({ onNavigate, selectedProductTitle = 
                     className="w-full h-full object-cover rounded-[1.75rem]" 
                   />
                 ) : selectedProductTitle.toLowerCase().includes("galvanized") ? (
-                  <RCCRoof3DViewer url="/RCC.glb" />
+                  <RCCRoof3DViewer url="/RCC.bin" />
                 ) : selectedProductTitle.toLowerCase().includes("rcc") ? (
-                  <RCCRoof3DViewer url="/RCC_Design.glb" />
+                  <RCCRoof3DViewer url="/RCC_Design.bin" />
                 ) : selectedProductTitle.toLowerCase().includes("ground mounted") ? (
-                  <RCCRoof3DViewer url="/Ground Mounted.glb" />
+                  <RCCRoof3DViewer url="/Ground_Mounted.bin" />
                 ) : selectedProductTitle.toLowerCase().includes("carport") ? (
-                  <RCCRoof3DViewer url="/Carport_Design.glb" zoom={0.8} />
+                  <RCCRoof3DViewer url="/Carport_Design.bin" zoom={0.8} />
                 ) : selectedProductTitle.toLowerCase().includes("customized") ? (
-                  <RCCRoof3DViewer url="/Customized.glb" />
+                  <RCCRoof3DViewer url="/Customized.bin" />
                 ) : selectedProductTitle.toLowerCase().includes("aluminum") ? (
-                  <RCCRoof3DViewer url="/Aluminum.glb" zoom={0.8} />
+                  <RCCRoof3DViewer url="/Aluminum.bin" zoom={0.8} />
                 ) : selectedProductTitle.toLowerCase().includes("handrail") ? (
-                  <RCCRoof3DViewer url="/Handrail.glb" zoom={1.2} />
+                  <RCCRoof3DViewer url="/Handrail.bin" zoom={1.2} />
                 ) : selectedProductTitle.toLowerCase().includes("walkway") ? (
-                  <RCCRoof3DViewer url="/WALK_WAY.glb" zoom={1.2} />
+                  <RCCRoof3DViewer url="/WALK_WAY.bin" zoom={1.2} />
                 ) : (
                   <div className="relative w-full h-full">
                     <img 

@@ -49,18 +49,18 @@ function Quote3DViewer({ structureType, subSelections }: { structureType: string
   let glbPath = "";
   let zoom = 1.0;
   if (structureType === "RCC Roof") {
-    glbPath = "/RCC_Design.glb";
+    glbPath = "/RCC_Design.bin";
   } else if (structureType === "Ground Mounted") {
-    glbPath = "/Ground Mounted.glb";
+    glbPath = "/Ground_Mounted.bin";
   } else if (structureType === "Car Port Structure") {
-    glbPath = "/Carport_Design.glb";
+    glbPath = "/Carport_Design.bin";
     zoom = 0.8;
   } else if (structureType === "Sheet Roof Structure") {
     if (subSelections.includes("Mini Rail")) {
-      glbPath = "/Mini_Rail_Redesign.glb";
+      glbPath = "/Mini_Rail_Redesign.bin";
       zoom = 1.0;
     } else {
-      glbPath = "/Long_Rail.glb";
+      glbPath = "/Long_Rail.bin";
       zoom = 1.0;
     }
   }
