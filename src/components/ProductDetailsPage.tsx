@@ -220,17 +220,21 @@ function RCCRoof3DViewer({ url, zoom = 1.0 }: { url: string; zoom?: number }) {
       cancelAnimationFrame(animationFrameId);
       resizeObserver.disconnect();
       controls.dispose();
-      renderer.dispose();
-      if (container.contains(renderer.domElement)) {
+      dracoLoader.dispose();
+      try {
+        renderer.forceContextLoss();
+        renderer.dispose();
+      } catch (e) {}
+      if (container && renderer.domElement && container.contains(renderer.domElement)) {
         container.removeChild(renderer.domElement);
       }
       if (loadedObj) {
         loadedObj.traverse((child) => {
           if (child instanceof THREE.Mesh) {
-            child.geometry.dispose();
+            child.geometry?.dispose();
             if (Array.isArray(child.material)) {
               child.material.forEach((m) => m.dispose());
-            } else {
+            } else if (child.material) {
               child.material.dispose();
             }
           }

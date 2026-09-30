@@ -27,12 +27,10 @@ export default function Product3DViewer({ url, zoom = 1.0, autoRotate = false, i
       (entries) => {
         const entry = entries[0];
         isIntersectingRef.current = entry.isIntersecting;
-        if (entry.isIntersecting) {
-          setIsInView(true);
-        }
+        setIsInView(entry.isIntersecting);
       },
       {
-        rootMargin: "300px",
+        rootMargin: "150px",
         threshold: 0.01
       }
     );
@@ -198,6 +196,8 @@ export default function Product3DViewer({ url, zoom = 1.0, autoRotate = false, i
               ? modelUrl.replace("/public/", "/")
               : "/public" + modelUrl;
             tryLoad(fallbackUrl, true);
+          } else {
+            setIsLoaded(true); // Stop spinner on failure
           }
         }
       );
@@ -211,7 +211,6 @@ export default function Product3DViewer({ url, zoom = 1.0, autoRotate = false, i
     const animate = () => {
       if (isDisposed) return;
       animationFrameId = requestAnimationFrame(animate);
-      // Only render frame when visible in viewport to conserve GPU & CPU
       if (isIntersectingRef.current) {
         controls.update();
         renderer.render(scene, camera);
@@ -237,17 +236,21 @@ export default function Product3DViewer({ url, zoom = 1.0, autoRotate = false, i
       resizeObserver.disconnect();
       controls.dispose();
       controlsRef.current = null;
-      renderer.dispose();
-      if (container.contains(renderer.domElement)) {
+      dracoLoader.dispose();
+      try {
+        renderer.forceContextLoss();
+        renderer.dispose();
+      } catch (e) {}
+      if (container && renderer.domElement && container.contains(renderer.domElement)) {
         container.removeChild(renderer.domElement);
       }
       if (loadedObj) {
         loadedObj.traverse((child) => {
           if (child instanceof THREE.Mesh) {
-            child.geometry.dispose();
+            child.geometry?.dispose();
             if (Array.isArray(child.material)) {
               child.material.forEach((m) => m.dispose());
-            } else {
+            } else if (child.material) {
               child.material.dispose();
             }
           }
