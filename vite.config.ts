@@ -1,6 +1,7 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
+import fs from 'fs';
 import {defineConfig} from 'vite';
 
 export default defineConfig(() => {
@@ -8,6 +9,17 @@ export default defineConfig(() => {
     plugins: [
       react(),
       tailwindcss(),
+      {
+        name: 'serve-dev-html',
+        configureServer(server) {
+          server.middlewares.use((req, res, next) => {
+            if (req.url === '/' || req.url === '/index.html') {
+              req.url = '/index.dev.html';
+            }
+            next();
+          });
+        }
+      },
       {
         name: 'serve-pdf-headers',
         configureServer(server) {
@@ -22,6 +34,19 @@ export default defineConfig(() => {
             next();
           });
         }
+      },
+      {
+        name: 'sync-production-html',
+        closeBundle() {
+          const distDev = path.resolve(__dirname, 'dist/index.dev.html');
+          const distProd = path.resolve(__dirname, 'dist/index.html');
+          const rootProd = path.resolve(__dirname, 'index.html');
+          if (fs.existsSync(distDev)) {
+            fs.copyFileSync(distDev, distProd);
+            fs.copyFileSync(distDev, rootProd);
+            try { fs.unlinkSync(distDev); } catch (e) {}
+          }
+        }
       }
     ],
     resolve: {
@@ -32,6 +57,7 @@ export default defineConfig(() => {
     build: {
       chunkSizeWarningLimit: 1000,
       rollupOptions: {
+        input: path.resolve(__dirname, 'index.dev.html'),
         output: {
           manualChunks(id) {
             if (id.includes('node_modules')) {
