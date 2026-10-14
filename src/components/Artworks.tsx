@@ -32,8 +32,8 @@ export const getSharedHeroVideo = (): HTMLVideoElement | null => {
   if (typeof document === "undefined") return null;
   if (!sharedHeroVideo) {
     const video = document.createElement("video");
-    video.src = "/videos/corporate-film.mp4";
-    video.poster = "/videos/corporate-film-poster.jpg";
+    video.src = "/videos/promo.mp4";
+    video.poster = "/videos/promo-poster.jpg";
     video.autoplay = true;
     video.loop = true;
     video.defaultMuted = true;
