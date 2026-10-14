@@ -783,26 +783,29 @@ export default function App() {
       }
     };
 
-    // Initialize state from hash if present on mount
+    // Initialize state from hash or pathname on mount (supports direct links & SEO crawlers)
     const initialHash = window.location.hash.replace("#", "");
-    if (initialHash) {
+    const cleanPath = window.location.pathname.replace(/^\/+|\/+$/g, "");
+    const routeTarget = initialHash || (cleanPath !== "index.html" ? cleanPath : "");
+
+    if (routeTarget) {
       let initialPage: any = "home";
-      if (initialHash.startsWith("articles")) {
+      if (routeTarget.startsWith("articles")) {
         initialPage = "articles";
-      } else if (initialHash.startsWith("careers")) {
+      } else if (routeTarget.startsWith("careers")) {
         initialPage = "careers";
-      } else if (initialHash.startsWith("downloads")) {
+      } else if (routeTarget.startsWith("downloads")) {
         initialPage = "downloads";
-      } else if (initialHash.startsWith("product-details")) {
+      } else if (routeTarget.startsWith("product-details")) {
         initialPage = "product-details";
-        const title = initialHash.replace("product-details/", "");
+        const title = routeTarget.replace("product-details/", "");
         if (title && title !== "product-details") {
           setSelectedProductTitle(decodeURIComponent(title));
         }
-      } else if (initialHash.startsWith("login") || initialHash.startsWith("admin")) {
+      } else if (routeTarget.startsWith("login") || routeTarget.startsWith("admin")) {
         initialPage = "login";
       } else {
-        const page = initialHash.split("?")[0];
+        const page = routeTarget.split("?")[0];
         const validPages = ["home", "about", "contact", "careers", "downloads", "login", "quote", "products", "services", "product-details"];
         if (validPages.includes(page)) {
           initialPage = page;
@@ -811,7 +814,10 @@ export default function App() {
         }
       }
       setCurrentPage(initialPage);
-      updateDocumentTitle(initialPage, initialHash);
+      updateDocumentTitle(initialPage, routeTarget);
+      if (!initialHash && routeTarget !== "home") {
+        window.location.hash = routeTarget;
+      }
     } else {
       window.location.hash = "home";
       updateDocumentTitle("home", "");
@@ -833,63 +839,63 @@ export default function App() {
         return {
           title: "Solar Mounting Structure (MMS) Manufacturer",
           description: "VRM Structures India Private Limited is a leading manufacturer of high-quality hot-dip galvanized & aluminum solar mounting structures (MMS) for commercial, residential, and utility-scale projects.",
-          canonicalUrl: "https://vrmstructures.in/#home",
+          canonicalUrl: "https://vrmstructures.in/",
         };
       case "about":
         return {
           title: "About Us | Solar MMS Manufacturer in Chennai",
           description: "Learn more about VRM Structures India Private Limited, our high-standard in-house solar structure fabrication, hot-dip galvanizing plant, and our commitment to quality Renewables infrastructure.",
-          canonicalUrl: "https://vrmstructures.in/#about",
+          canonicalUrl: "https://vrmstructures.in/about",
         };
       case "products":
         return {
           title: "Solar Mounting Structures & Solutions Catalog",
           description: "Browse our solar structure catalog: RCC Roof MMS, Ground Mounted Solar Structures, Carport MMS, Solar Pump MMS, FRP Walkway, FRP Handrails, and Solar BOS Kits.",
-          canonicalUrl: "https://vrmstructures.in/#products",
+          canonicalUrl: "https://vrmstructures.in/products",
         };
       case "services":
         return {
           title: "In-House Manufacturing & Hot-Dip Galvanizing Services",
           description: "We provide high-capacity in-house cold roll forming, advanced engineering design, custom solar mounting solutions fabrication, and premium hot-dip galvanizing services.",
-          canonicalUrl: "https://vrmstructures.in/#services",
+          canonicalUrl: "https://vrmstructures.in/services",
         };
       case "contact":
         return {
           title: "Contact Us | Chennai Office & Manufacturing Plant",
           description: "Get in touch with the VRM Structures sales and technical team. Contact details, corporate office location in Chennai, and factory address.",
-          canonicalUrl: "https://vrmstructures.in/#contact",
+          canonicalUrl: "https://vrmstructures.in/contact",
         };
       case "careers":
         return {
           title: "Careers | Join Our Solar Structure Engineering Team",
           description: "Explore career opportunities at VRM Structures. Join us in manufacturing high-durability solar mounting structures and building clean energy solutions.",
-          canonicalUrl: "https://vrmstructures.in/#careers",
+          canonicalUrl: "https://vrmstructures.in/careers",
         };
       case "articles":
         if (window.location.hash.startsWith("#articles/")) return null;
         return {
           title: "Solar Engineering Articles & Industry Insights",
           description: "Read our technical articles and blogs on solar module mounting structures design, hot-dip galvanizing standards, wind load compliance, and solar rooftop safety guidelines.",
-          canonicalUrl: "https://vrmstructures.in/#articles",
+          canonicalUrl: "https://vrmstructures.in/articles",
         };
       case "quote":
         return {
           title: "Interactive 3D Quote Builder | Customized MMS Cost",
           description: "Configure your solar mounting structure online with our interactive 3D quote builder and request customized engineering drawing quotes directly.",
-          canonicalUrl: "https://vrmstructures.in/#quote",
+          canonicalUrl: "https://vrmstructures.in/quote",
         };
       case "downloads":
         if (window.location.hash.startsWith("#downloads/")) return null;
         return {
           title: "Downloads | Technical Datasheets & Product Catalogs",
           description: "Download official technical datasheets, CAD layouts, and product catalogs for all VRM solar mounting structures and safety walkways.",
-          canonicalUrl: "https://vrmstructures.in/#downloads",
+          canonicalUrl: "https://vrmstructures.in/downloads",
         };
       case "login":
         return {
           title: "Admin Portal & Login",
           description: "Administrative login portal for VRM Structures team members to manage jobs, requests, and articles.",
-          canonicalUrl: "https://vrmstructures.in/#login",
+          canonicalUrl: "https://vrmstructures.in/login",
         };
       case "not-found":
         return {
