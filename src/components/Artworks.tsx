@@ -40,6 +40,11 @@ export const getSharedHeroVideo = (): HTMLVideoElement | null => {
     video.muted = isSharedHeroMuted;
     video.playsInline = true;
     video.preload = "auto";
+    video.setAttribute("muted", "");
+    video.setAttribute("playsinline", "");
+    video.setAttribute("webkit-playsinline", "");
+    video.setAttribute("autoplay", "");
+    video.setAttribute("loop", "");
     video.className = "w-full h-full object-cover scale-105 pointer-events-none select-none";
 
     video.addEventListener("timeupdate", () => {

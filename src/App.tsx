@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { databaseApi } from "./lib/api";
 import { motion, AnimatePresence } from "motion/react";
 import {
   Play,
@@ -653,18 +654,10 @@ export default function App() {
       }
     } else if (page === "articles" && hash.startsWith("articles/")) {
       const id = hash.replace("articles/", "");
-      const stored = localStorage.getItem("vrm_articles_data");
-      if (stored) {
-        try {
-          const list = JSON.parse(stored);
-          const article = list.find((a: any) => a.id === id);
-          if (article) {
-            title = `${article.title} | VRM Structures`;
-          }
-        } catch (e) {
-          // ignore
-        }
-      }
+      void databaseApi.articles().then((list) => {
+        const article = list.find((item) => item.id === id);
+        if (article) document.title = `${article.title} | VRM Structures`;
+      }).catch(() => undefined);
     } else if (page === "product-details" && hash.startsWith("product-details/")) {
       const pTitle = hash.replace("product-details/", "");
       if (pTitle) {

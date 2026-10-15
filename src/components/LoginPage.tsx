@@ -7,6 +7,7 @@ import {
   LayoutDashboard, Briefcase, BookOpen, ChevronLeft, MapPin, Clock, Award
 } from 'lucide-react';
 import { ImagineLogo } from './Artworks';
+import { databaseApi } from '../lib/api';
 
 interface LoginPageProps {
   onNavigate?: (page: any, targetId?: string) => void;
@@ -47,7 +48,7 @@ export default function LoginPage({ onNavigate, initialTab }: LoginPageProps) {
   const [passwordOrOtp, setPasswordOrOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
-  const [isLoggedIn, setIsLoggedIn] = useState(() => sessionStorage.getItem("vrm_admin_logged_in") === "true");
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   const [adminSubTab, setAdminSubTab] = useState<'overview' | 'jobs' | 'articles' | 'settings'>(initialTab || 'overview');
 
@@ -67,17 +68,11 @@ export default function LoginPage({ onNavigate, initialTab }: LoginPageProps) {
   const [seoDesc, setSeoDesc] = useState("VRM Structures India Private Limited is a leading manufacturer of high-quality hot-dip galvanized & aluminum solar mounting structures.");
   const [analyticsId, setAnalyticsId] = useState("UA-19842621-1");
   const [adminName, setAdminName] = useState("Velmurugan Rathinam");
-  const [adminPass, setAdminPass] = useState("••••••••");
+  const [adminPass, setAdminPass] = useState("");
   
   const [editingJob, setEditingJob] = useState<Partial<Job> | null>(null);
   const [editingArticle, setEditingArticle] = useState<Partial<Article> | null>(null);
-  const [notifications, setNotifications] = useState<{ id: string; text: string; time: string; read: boolean }[]>(() => {
-    const stored = localStorage.getItem("vrm_notifications");
-    return stored ? JSON.parse(stored) : [
-      { id: "notif-1", text: "Welcome to VRM Structures Admin Dashboard Portal.", time: "10:30 AM", read: false },
-      { id: "notif-2", text: "System Online & Securely Connected to Renewables Infrastructure DB.", time: "09:15 AM", read: false }
-    ];
-  });
+  const [notifications, setNotifications] = useState<{ id: string; text: string; time: string; read: boolean }[]>([]);
   const [notifDropdownOpen, setNotifDropdownOpen] = useState(false);
 
   const addNotification = (text: string) => {
@@ -87,11 +82,8 @@ export default function LoginPage({ onNavigate, initialTab }: LoginPageProps) {
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       read: false
     };
-    setNotifications(prev => {
-      const updated = [newNotif, ...prev];
-      localStorage.setItem("vrm_notifications", JSON.stringify(updated));
-      return updated;
-    });
+    setNotifications(prev => [newNotif, ...prev]);
+    void databaseApi.addNotification(newNotif).catch((error) => setErrorMsg(error.message));
   };
 
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
@@ -182,7 +174,7 @@ export default function LoginPage({ onNavigate, initialTab }: LoginPageProps) {
       }
     ];
 
-    if (!storedJobs || JSON.parse(storedJobs).length < 4) {
+    if (!storedJobs) {
       localStorage.setItem("vrm_jobs_data", JSON.stringify(defaultJobs));
     }
 
@@ -322,32 +314,89 @@ export default function LoginPage({ onNavigate, initialTab }: LoginPageProps) {
       }
     ];
 
-    if (!storedArticles || JSON.parse(storedArticles).length < 6) {
+    if (!storedArticles) {
       localStorage.setItem("vrm_articles_data", JSON.stringify(defaultArticles));
     }
+  }, []);
 
-    const loadData = () => {
-      const storedJobs = localStorage.getItem("vrm_jobs_data");
-      if (storedJobs) setJobs(JSON.parse(storedJobs));
-      const storedArticles = localStorage.getItem("vrm_articles_data");
-      if (storedArticles) setArticles(JSON.parse(storedArticles));
+  useEffect(() => {
+    let active = true;
+    databaseApi.session().then((admin) => {
+      if (active) {
+        setAdminName(admin.displayName || "Administrator");
+        setIsLoggedIn(true);
+      }
+    }).catch(() => undefined);
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    let active = true;
+
+    const loadAdminData = async () => {
+      try {
+        let data = await databaseApi.adminData();
+        const readLegacyData = <T,>(key: string): T[] => {
+          try { return JSON.parse(localStorage.getItem(key) || "[]") as T[]; } catch { return []; }
+        };
+        const legacyJobs = readLegacyData<Job>("vrm_jobs_data");
+        const legacyArticles = readLegacyData<Article>("vrm_articles_data");
+        const legacyNotifications = readLegacyData<typeof notifications[number]>("vrm_notifications");
+
+        if (!data.jobs.length && legacyJobs.length) {
+          await Promise.all(legacyJobs.map((job) => databaseApi.saveRecord("job", job)));
+        }
+        if (!data.articles.length && legacyArticles.length) {
+          await Promise.all(legacyArticles.map((article) => databaseApi.saveRecord("article", article)));
+        }
+        if (!data.notifications.length && legacyNotifications.length) {
+          await Promise.all(legacyNotifications.map((notification) => databaseApi.addNotification(notification)));
+        }
+
+        localStorage.removeItem("vrm_jobs_data");
+        localStorage.removeItem("vrm_articles_data");
+        localStorage.removeItem("vrm_notifications");
+        data = await databaseApi.adminData();
+        if (!active) return;
+
+        setJobs(data.jobs as Job[]);
+        setArticles(data.articles as Article[]);
+        setNotifications(data.notifications);
+        if (Object.keys(data.settings).length) {
+          setCompanyName(data.settings.companyName || "");
+          setCompanyEmail(data.settings.companyEmail || "");
+          setCompanyPhone(data.settings.companyPhone || "");
+          setSeoTitle(data.settings.seoTitle || "");
+          setSeoDesc(data.settings.seoDesc || "");
+          setAnalyticsId(data.settings.analyticsId || "");
+          setAdminName(data.settings.adminName || "Administrator");
+        }
+      } catch (error) {
+        if (active) setErrorMsg(error instanceof Error ? error.message : "Unable to load admin data.");
+      }
     };
 
-    loadData();
-    window.addEventListener("storage", loadData);
-    return () => window.removeEventListener("storage", loadData);
-  }, []);
+    void loadAdminData();
+    return () => { active = false; };
+  }, [isLoggedIn]);
 
   const saveJobs = (newJobs: Job[]) => {
     setJobs(newJobs);
-    localStorage.setItem("vrm_jobs_data", JSON.stringify(newJobs));
-    window.dispatchEvent(new Event("storage"));
+    const removedJobs = jobs.filter((job) => !newJobs.some((newJob) => newJob.id === job.id));
+    void Promise.all([
+      ...newJobs.map((job) => databaseApi.saveRecord("job", job)),
+      ...removedJobs.map((job) => databaseApi.deleteRecord("job", job.id)),
+    ]).catch((error) => setErrorMsg(error.message));
   };
 
   const saveArticles = (newArticles: Article[]) => {
     setArticles(newArticles);
-    localStorage.setItem("vrm_articles_data", JSON.stringify(newArticles));
-    window.dispatchEvent(new Event("storage"));
+    const removedArticles = articles.filter((article) => !newArticles.some((newArticle) => newArticle.id === article.id));
+    void Promise.all([
+      ...newArticles.map((article) => databaseApi.saveRecord("article", article)),
+      ...removedArticles.map((article) => databaseApi.deleteRecord("article", article.id)),
+    ]).catch((error) => setErrorMsg(error.message));
   };
 
   const renderJobsManager = () => {
@@ -1218,10 +1267,19 @@ export default function LoginPage({ onNavigate, initialTab }: LoginPageProps) {
         </div>
 
         <form 
-          onSubmit={e => {
+          onSubmit={async e => {
             e.preventDefault();
-            addNotification("System Settings saved successfully.");
-            alert("Settings successfully updated!");
+            setLoading(true);
+            try {
+              await databaseApi.saveSettings({ companyName, companyEmail, companyPhone, seoTitle, seoDesc, analyticsId, adminName }, adminPass || undefined);
+              setAdminPass("");
+              addNotification("System Settings saved successfully.");
+              alert("Settings successfully updated!");
+            } catch (error) {
+              setErrorMsg(error instanceof Error ? error.message : "Unable to save settings.");
+            } finally {
+              setLoading(false);
+            }
           }}
           className="space-y-8"
         >
@@ -1314,7 +1372,8 @@ export default function LoginPage({ onNavigate, initialTab }: LoginPageProps) {
                 <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Update Password</label>
                 <input 
                   type="password" 
-                  value={adminPass} 
+                  value={adminPass}
+                  placeholder="Leave blank to keep current password"
                   onChange={e => setAdminPass(e.target.value)}
                   className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:border-indigo-500 text-sm bg-white"
                 />
@@ -1542,7 +1601,7 @@ export default function LoginPage({ onNavigate, initialTab }: LoginPageProps) {
                             onClick={() => {
                               const updated = notifications.map(n => ({ ...n, read: true }));
                               setNotifications(updated);
-                              localStorage.setItem("vrm_notifications", JSON.stringify(updated));
+                              void databaseApi.markNotificationsRead().catch((error) => setErrorMsg(error.message));
                             }}
                             className="text-[10px] text-indigo-600 hover:text-indigo-850 font-bold select-none cursor-pointer"
                           >
@@ -1570,7 +1629,7 @@ export default function LoginPage({ onNavigate, initialTab }: LoginPageProps) {
                                     onClick={() => {
                                       const updated = notifications.map(n => n.id === notif.id ? { ...n, read: true } : n);
                                       setNotifications(updated);
-                                      localStorage.setItem("vrm_notifications", JSON.stringify(updated));
+                                      void databaseApi.markNotificationRead(notif.id).catch((error) => setErrorMsg(error.message));
                                     }}
                                     className="absolute right-2 top-2 w-4.5 h-4.5 flex items-center justify-center bg-indigo-100/40 text-indigo-600 rounded-full hover:bg-indigo-200/50 cursor-pointer"
                                     title="Mark as read"
@@ -1607,7 +1666,7 @@ export default function LoginPage({ onNavigate, initialTab }: LoginPageProps) {
                   <button
                     onClick={() => {
                       setIsLoggedIn(false);
-                      sessionStorage.removeItem("vrm_admin_logged_in");
+                      void databaseApi.logout();
                       setEmailOrPhone('');
                       setPasswordOrOtp('');
                       window.location.hash = "login";
@@ -1871,7 +1930,7 @@ export default function LoginPage({ onNavigate, initialTab }: LoginPageProps) {
     );
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
     
@@ -1885,18 +1944,16 @@ export default function LoginPage({ onNavigate, initialTab }: LoginPageProps) {
       return;
     }
 
-    if (emailOrPhone.trim().toLowerCase() !== 'mms@vrmstructures.in' || passwordOrOtp !== 'vrm@2018') {
-      setErrorMsg('Invalid admin email address or password.');
-      return;
-    }
-
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      await databaseApi.login(emailOrPhone, passwordOrOtp);
       setIsLoggedIn(true);
-      sessionStorage.setItem("vrm_admin_logged_in", "true");
       window.location.hash = "admin/dashboard";
-    }, 900);
+    } catch (error) {
+      setErrorMsg(error instanceof Error ? error.message : "Invalid admin email or password.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

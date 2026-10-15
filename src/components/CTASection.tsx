@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Mail, Phone, MapPin, Send, CheckCircle2, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { addInquiry } from '../lib/firebase';
+import { databaseApi } from '../lib/api';
 
 interface CTASectionProps {
   onRequestQuote: () => void;
@@ -37,7 +37,7 @@ export default function CTASection({ onRequestQuote, ctaImgPath }: CTASectionPro
     );
 
     try {
-      await addInquiry({
+      await databaseApi.submit("inquiry", {
         ...formData,
         inquiryType: 'Quick Contact CTA'
       });

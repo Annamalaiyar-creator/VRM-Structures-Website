@@ -5,9 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite --port=3000 --host=0.0.0.0",
-    "build": "vite build && rm -rf assets && cp -r dist/assets assets",
+    "api": "node server.js",
+    "admin:create": "node scripts/create-admin.js",
+    "start": "node server.js",
+    "build": "vite build && rm -rf assets videos && cp -r dist/assets assets && cp -r dist/videos videos",
     "preview": "vite preview",
-    "clean": "rm -rf dist server.js",
+    "clean": "rm -rf dist",
     "lint": "tsc --noEmit"
   },
   "dependencies": {
@@ -16,11 +19,13 @@
     "@react-three/fiber": "^9.6.1",
     "@tailwindcss/vite": "^4.1.14",
     "@vitejs/plugin-react": "^5.0.4",
+    "bcryptjs": "^3.0.3",
     "dotenv": "^17.2.3",
     "express": "^4.21.2",
     "firebase": "^12.16.0",
     "lucide-react": "^0.546.0",
     "motion": "^12.23.24",
+    "mssql": "^12.7.6",
     "react": "^19.0.1",
     "react-dom": "^19.0.1",
     "react-helmet-async": "^3.0.0",

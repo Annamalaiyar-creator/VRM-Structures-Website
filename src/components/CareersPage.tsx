@@ -29,6 +29,7 @@ import {
   HeroImageBackground
 } from "./Artworks";
 import ScrollDownButton from "./ScrollDownButton";
+import { databaseApi } from "../lib/api";
 
 interface CareersPageProps {
   onNavigate: (page: "home" | "about" | "contact" | "careers" | "articles" | "products" | "services" | "quote", targetId?: string) => void;
@@ -46,15 +47,7 @@ interface Job {
   perks: string[];
 }
 
-const getStoredJobs = (): Job[] => {
-  const stored = localStorage.getItem("vrm_jobs_data");
-  if (stored) {
-    try {
-      return JSON.parse(stored);
-    } catch (e) {
-      console.error(e);
-    }
-  }
+const getDefaultJobs = (): Job[] => {
   return [
     {
       id: "design-eng-mms-chennai",
@@ -139,9 +132,8 @@ const getStoredJobs = (): Job[] => {
   ];
 };
 
-const JOBS_DATA: Job[] = getStoredJobs();
-
 export default function CareersPage({ onNavigate }: CareersPageProps) {
+  const [jobs, setJobs] = useState<Job[]>(getDefaultJobs());
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
 
   // Application form states
@@ -155,6 +147,15 @@ export default function CareersPage({ onNavigate }: CareersPageProps) {
   const [applicantMessage, setApplicantMessage] = useState("");
   const [appliedSubmitted, setAppliedSubmitted] = useState(false);
   const [applyLoading, setApplyLoading] = useState(false);
+  const [applicationError, setApplicationError] = useState("");
+
+  React.useEffect(() => {
+    let active = true;
+    databaseApi.jobs().then((records) => {
+      if (active && records.length) setJobs(records as Job[]);
+    }).catch((error) => console.error("Unable to load careers from database:", error));
+    return () => { active = false; };
+  }, []);
 
   const handleOpenApplyModal = (job: Job) => {
     window.location.hash = "careers/" + job.id;
@@ -171,7 +172,7 @@ export default function CareersPage({ onNavigate }: CareersPageProps) {
       const match = hash.match(/careers\/([^?]+)/);
       if (match) {
         const jobId = match[1];
-        const found = JOBS_DATA.find(j => j.id === jobId);
+        const found = jobs.find(j => j.id === jobId);
         if (found) {
           setSelectedJob(found);
           setApplicantRole(found.title);
@@ -189,21 +190,38 @@ export default function CareersPage({ onNavigate }: CareersPageProps) {
       setApplicantPortfolio("");
       setApplicantMessage("");
       setAppliedSubmitted(false);
+      setApplicationError("");
       window.scrollTo(0, 0);
     };
 
     checkHash();
     window.addEventListener("hashchange", checkHash);
     return () => window.removeEventListener("hashchange", checkHash);
-  }, []);
+  }, [jobs]);
 
-  const handleFormSubmit = (e: React.FormEvent) => {
+  const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setApplyLoading(true);
-    setTimeout(() => {
-      setApplyLoading(false);
+    setApplicationError("");
+    try {
+      await databaseApi.submit("application", {
+        name: applicantName,
+        email: applicantEmail,
+        phone: applicantPhone,
+        role: applicantRole,
+        experience: applicantExperience,
+        skills: applicantSkills,
+        portfolio: applicantPortfolio,
+        message: applicantMessage,
+        jobId: selectedJob?.id,
+        submittedAt: new Date().toISOString(),
+      });
       setAppliedSubmitted(true);
-    }, 1500);
+    } catch (error) {
+      setApplicationError(error instanceof Error ? error.message : "Unable to submit your application.");
+    } finally {
+      setApplyLoading(false);
+    }
   };
 
   if (selectedJob) {
@@ -323,6 +341,8 @@ export default function CareersPage({ onNavigate }: CareersPageProps) {
                     </button>
                   </motion.div>
                 ) : (
+                  <>
+                  {applicationError && <p role="alert" className="text-sm text-rose-700">{applicationError}</p>}
                   <form onSubmit={handleFormSubmit} className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       {/* Name */}
@@ -481,6 +501,7 @@ export default function CareersPage({ onNavigate }: CareersPageProps) {
                       </button>
                     </div>
                   </form>
+                  </>
                 )}
               </div>
             </div>
@@ -719,7 +740,7 @@ export default function CareersPage({ onNavigate }: CareersPageProps) {
 
             {/* ACTIVE POSITIONS LIST */}
             <div id="active-positions" className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 mt-12 sm:mt-16 text-left">
-              {JOBS_DATA.map((job) => {
+              {jobs.map((job) => {
                 const isDesign = job.title.toLowerCase().includes("design") || job.title.toLowerCase().includes("engineer");
                 const imageUrl = isDesign 
                   ? "https://images.unsplash.com/photo-1581092921461-eab62e97a780?auto=format&fit=crop&q=80&w=600"

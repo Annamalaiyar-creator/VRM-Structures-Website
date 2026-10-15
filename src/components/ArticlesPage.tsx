@@ -17,6 +17,7 @@ import {
   HeroImageBackground
 } from "./Artworks";
 import ScrollDownButton from "./ScrollDownButton";
+import { databaseApi } from "../lib/api";
 
 interface Article {
   id: string;
@@ -34,15 +35,7 @@ interface Article {
   colorTo: string;
 }
 
-const getStoredArticles = (): Article[] => {
-  const stored = localStorage.getItem("vrm_articles_data");
-  if (stored) {
-    try {
-      return JSON.parse(stored);
-    } catch (e) {
-      console.error(e);
-    }
-  }
+const getDefaultArticles = (): Article[] => {
   return [
     {
       id: "mms-foundation-solar-success",
@@ -178,26 +171,23 @@ const getStoredArticles = (): Article[] => {
   ];
 };
 
-const ARTICLES_DATA: Article[] = getStoredArticles();
-
 interface ArticlesPageProps {
   onNavigate: (page: "home" | "about" | "contact" | "careers" | "articles" | "products" | "services" | "quote", targetId?: string) => void;
   onContactClick: () => void;
 }
 
 export default function ArticlesPage({ onNavigate, onContactClick }: ArticlesPageProps) {
-  const [articlesList, setArticlesList] = useState<Article[]>(getStoredArticles());
+  const [articlesList, setArticlesList] = useState<Article[]>(getDefaultArticles());
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
 
-  // Sync state on storage event
   React.useEffect(() => {
-    const handleSync = () => {
-      setArticlesList(getStoredArticles());
-    };
-    window.addEventListener("storage", handleSync);
-    return () => window.removeEventListener("storage", handleSync);
+    let active = true;
+    databaseApi.articles().then((records) => {
+      if (active && records.length) setArticlesList(records as Article[]);
+    }).catch((error) => console.error("Unable to load articles from database:", error));
+    return () => { active = false; };
   }, []);
 
   // Scroll to top and check hash on load

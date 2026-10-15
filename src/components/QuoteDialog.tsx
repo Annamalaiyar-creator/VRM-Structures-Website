@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, Calculator, ShieldCheck, Sun, CheckCircle, Loader2 } from 'lucide-react';
-import { addQuote } from '../lib/firebase';
+import { databaseApi } from '../lib/api';
 
 interface QuoteDialogProps {
   isOpen: boolean;
@@ -58,7 +58,7 @@ export default function QuoteDialog({ isOpen, onClose, preselectedProduct }: Quo
     setIsSubmitting(true);
     setSubmitError(null);
     try {
-      await addQuote({
+      await databaseApi.submit("quote", {
         ...formData,
         mountingType,
         capacity,
