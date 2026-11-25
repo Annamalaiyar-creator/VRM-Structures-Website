@@ -32,7 +32,8 @@ export const getSharedHeroVideo = (): HTMLVideoElement | null => {
   if (typeof document === "undefined") return null;
   if (!sharedHeroVideo) {
     const video = document.createElement("video");
-    video.src = "/videos/promo.mp4";
+    // Web-encoded copy of promo.mp4 (H.264 CRF 27, faststart): 6.7 MB instead of 26 MB.
+    video.src = "/videos/promo-hero.mp4";
     video.poster = "/videos/promo-poster.jpg";
     video.autoplay = true;
     video.loop = true;

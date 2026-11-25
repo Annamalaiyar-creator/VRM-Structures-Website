@@ -13,7 +13,16 @@ export default defineConfig(() => {
         name: 'serve-dev-html',
         configureServer(server) {
           server.middlewares.use((req, res, next) => {
-            if (req.url === '/' || req.url === '/index.html') {
+            const pathname = (req.url || '/').split('?')[0];
+            const isPageRequest =
+              (req.headers.accept || '').includes('text/html') &&
+              !pathname.startsWith('/api/') &&
+              !pathname.startsWith('/@') &&
+              !pathname.startsWith('/src/') &&
+              !pathname.startsWith('/node_modules/') &&
+              !/\.[a-z0-9]{2,5}$/i.test(pathname);
+            // Clean URLs such as /about/ or /downloads/<id>/ are app routes: serve the dev template.
+            if (pathname === '/index.html' || isPageRequest) {
               req.url = '/index.dev.html';
             }
             next();

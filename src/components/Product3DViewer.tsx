@@ -16,6 +16,9 @@ export default function Product3DViewer({ url, zoom = 1.0, autoRotate = false, i
   const controlsRef = useRef<OrbitControls | null>(null);
   const [isInView, setIsInView] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
+  // True when the browser can't create a WebGL context (old devices, locked-down PCs,
+  // crawlers). Without this guard the error unmounted the whole page and left it blank.
+  const [webglUnavailable, setWebglUnavailable] = useState(false);
   const isIntersectingRef = useRef(false);
 
   // Lazy load: Only initialize Three.js and download 3D model when near or in viewport
@@ -60,7 +63,15 @@ export default function Product3DViewer({ url, zoom = 1.0, autoRotate = false, i
     const camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 1000);
     camera.position.set(2.2, 1.3, 2.2);
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
+    let renderer: THREE.WebGLRenderer;
+    try {
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
+    } catch (error) {
+      console.warn("3D preview unavailable: WebGL could not be started.", error);
+      setWebglUnavailable(true);
+      setIsLoaded(true);
+      return;
+    }
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = true;
@@ -261,6 +272,11 @@ export default function Product3DViewer({ url, zoom = 1.0, autoRotate = false, i
 
   return (
     <div className="w-full h-full relative group bg-transparent rounded-[2.2rem] overflow-hidden">
+      {webglUnavailable && (
+        <div className="absolute inset-0 flex items-center justify-center text-slate-400 text-xs font-light text-center px-4">
+          3D preview is not supported on this device.
+        </div>
+      )}
       {!isLoaded && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-transparent text-slate-450 gap-2">
           <div className="w-5 h-5 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />

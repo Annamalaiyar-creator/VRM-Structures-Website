@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { databaseApi } from "./lib/api";
+import { initRouter, getRoute, setRoute, routeToPath, routeToUrl, ROUTE_EVENT } from "./lib/router";
 import { motion, AnimatePresence } from "motion/react";
 import {
   Play,
@@ -74,6 +75,7 @@ import ServicesPage from "./components/ServicesPage";
 import ProductDetailsPage from "./components/ProductDetailsPage";
 import DownloadsPage from "./components/DownloadsPage";
 import { DOWNLOADS_DATA } from "./components/DatasheetDetailPage";
+import { LINKEDIN_ARTICLES } from "./data/linkedinArticles";
 import LoginPage from "./components/LoginPage";
 import FloatingSocialButtons from "./components/FloatingSocialButtons";
 import ScrollDownButton from "./components/ScrollDownButton";
@@ -277,13 +279,14 @@ function InsightCard({ item, idx, onClick }: { item: InsightItem; idx: number; o
   const citationText = item.author;
 
   return (
-    <motion.div
+    <motion.a
+      href={`/articles/${item.id}/`}
       initial={{ opacity: 0, y: 30 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 0.25, delay: idx * 0.04 }}
       whileHover={{ y: -8 }}
-      onClick={onClick}
+      onClick={(e) => { e.preventDefault(); onClick?.(); }}
       className="relative flex flex-col justify-between p-8 min-h-[380px] rounded-[24px] border border-slate-100 bg-[#FAFAFA] transition-all duration-500 hover:shadow-[0_24px_48px_rgba(15,23,42,0.12)] group cursor-pointer overflow-hidden"
     >
       {/* Absolute dark overlay background that fades in on hover to create a seamless transition */}
@@ -326,7 +329,7 @@ function InsightCard({ item, idx, onClick }: { item: InsightItem; idx: number; o
           {citationText}
         </span>
       </div>
-    </motion.div>
+    </motion.a>
   );
 }
 
@@ -608,6 +611,8 @@ export default function App() {
   const [isHeroMuted, setIsHeroMuted] = useState(true);
   const heroVideoRef = useRef<HTMLVideoElement>(null);
   const [currentPage, setCurrentPage] = useState<"home" | "about" | "contact" | "careers" | "articles" | "downloads" | "login" | "quote" | "products" | "services" | "product-details" | "not-found">("home");
+  // Full current route (e.g. "downloads/<id>"); re-renders the page-level SEO tags on every URL change.
+  const [currentRoute, setCurrentRoute] = useState<string>(() => getRoute());
   const [selectedProductTitle, setSelectedProductTitle] = useState("Metal Roof MMS");
   const [productsDropdownOpen, setProductsDropdownOpen] = useState(false);
   const [mountingDropdownOpen, setMountingDropdownOpen] = useState(false);
@@ -668,18 +673,23 @@ export default function App() {
     document.title = title;
   };
 
-  const navigateTo = (page: "home" | "about" | "contact" | "careers" | "articles" | "downloads" | "login" | "quote" | "products" | "services" | "product-details" | "not-found", targetId?: string) => {
-    // Only update hash if not already matching to avoid history loop
-    const targetHash = page === "articles"
+  type PageName = "home" | "about" | "contact" | "careers" | "articles" | "downloads" | "login" | "quote" | "products" | "services" | "product-details" | "not-found";
+
+  const routeFor = (page: PageName, targetId?: string) =>
+    page === "articles"
       ? (targetId ? `articles/${targetId}` : "articles")
       : page === "product-details"
         ? (targetId ? `product-details/${encodeURIComponent(targetId)}` : "product-details")
         : page === "downloads" && targetId
           ? `downloads?category=${targetId}`
           : page;
-    if (window.location.hash.replace("#", "") !== targetHash) {
-      window.location.hash = targetHash;
-    }
+
+  /** Real URL for a page, used as the href of navigation links so crawlers can follow them. */
+  const pageHref = (page: PageName, targetId?: string) => routeToPath(routeFor(page, targetId));
+
+  const navigateTo = (page: PageName, targetId?: string) => {
+    const targetHash = routeFor(page, targetId);
+    setRoute(targetHash);
     setCurrentPage(page);
     updateDocumentTitle(page, targetHash);
     if (page === "product-details" && targetId) {
@@ -724,10 +734,25 @@ export default function App() {
     handleScroll();
 
     const handleHashChange = () => {
-      const hash = window.location.hash.replace("#", "");
+      const hash = getRoute();
+      setCurrentRoute(hash);
       if (!hash) {
         setCurrentPage("home");
         updateDocumentTitle("home", "");
+        return;
+      }
+
+      if (hash.startsWith("products/")) {
+        const slug = hash.slice("products/".length).split("?")[0];
+        setCurrentPage("product-details");
+        setSelectedProductTitle(decodeURIComponent(slug));
+        updateDocumentTitle("product-details", hash);
+        return;
+      }
+
+      if (hash === "404") {
+        setCurrentPage("not-found");
+        updateDocumentTitle("not-found", hash);
         return;
       }
 
@@ -776,52 +801,16 @@ export default function App() {
       }
     };
 
-    // Initialize state from hash or pathname on mount (supports direct links & SEO crawlers)
-    const initialHash = window.location.hash.replace("#", "");
-    const cleanPath = window.location.pathname.replace(/^\/+|\/+$/g, "");
-    const routeTarget = initialHash || (cleanPath !== "index.html" ? cleanPath : "");
+    // Initialize state from the URL path on mount (supports direct links, legacy #hash links & crawlers)
+    initRouter();
+    handleHashChange();
 
-    if (routeTarget) {
-      let initialPage: any = "home";
-      if (routeTarget.startsWith("articles")) {
-        initialPage = "articles";
-      } else if (routeTarget.startsWith("careers")) {
-        initialPage = "careers";
-      } else if (routeTarget.startsWith("downloads")) {
-        initialPage = "downloads";
-      } else if (routeTarget.startsWith("product-details")) {
-        initialPage = "product-details";
-        const title = routeTarget.replace("product-details/", "");
-        if (title && title !== "product-details") {
-          setSelectedProductTitle(decodeURIComponent(title));
-        }
-      } else if (routeTarget.startsWith("login") || routeTarget.startsWith("admin")) {
-        initialPage = "login";
-      } else {
-        const page = routeTarget.split("?")[0];
-        const validPages = ["home", "about", "contact", "careers", "downloads", "login", "quote", "products", "services", "product-details"];
-        if (validPages.includes(page)) {
-          initialPage = page;
-        } else {
-          initialPage = "not-found";
-        }
-      }
-      setCurrentPage(initialPage);
-      updateDocumentTitle(initialPage, routeTarget);
-      if (!initialHash && routeTarget !== "home") {
-        window.location.hash = routeTarget;
-      }
-    } else {
-      window.location.hash = "home";
-      updateDocumentTitle("home", "");
-    }
-
-    window.addEventListener("hashchange", handleHashChange);
+    window.addEventListener(ROUTE_EVENT, handleHashChange);
 
     return () => {
       window.removeEventListener("resize", checkSize);
       window.removeEventListener("scroll", handleScroll);
-      window.removeEventListener("hashchange", handleHashChange);
+      window.removeEventListener(ROUTE_EVENT, handleHashChange);
     };
   }, []);
 
@@ -832,69 +821,71 @@ export default function App() {
         return {
           title: "Solar Mounting Structure (MMS) Manufacturer",
           description: "VRM Structures India Private Limited is a leading manufacturer of high-quality hot-dip galvanized & aluminum solar mounting structures (MMS) for commercial, residential, and utility-scale projects.",
-          canonicalUrl: "https://vrmstructures.in/",
+          canonicalUrl: routeToUrl(""),
         };
       case "about":
         return {
           title: "About Us | Solar MMS Manufacturer in Chennai",
           description: "Learn more about VRM Structures India Private Limited, our high-standard in-house solar structure fabrication, hot-dip galvanizing plant, and our commitment to quality Renewables infrastructure.",
-          canonicalUrl: "https://vrmstructures.in/about",
+          canonicalUrl: routeToUrl("about"),
         };
       case "products":
         return {
           title: "Solar Mounting Structures & Solutions Catalog",
           description: "Browse our solar structure catalog: RCC Roof MMS, Ground Mounted Solar Structures, Carport MMS, Solar Pump MMS, FRP Walkway, FRP Handrails, and Solar BOS Kits.",
-          canonicalUrl: "https://vrmstructures.in/products",
+          canonicalUrl: routeToUrl("products"),
         };
       case "services":
         return {
           title: "In-House Manufacturing & Hot-Dip Galvanizing Services",
           description: "We provide high-capacity in-house cold roll forming, advanced engineering design, custom solar mounting solutions fabrication, and premium hot-dip galvanizing services.",
-          canonicalUrl: "https://vrmstructures.in/services",
+          canonicalUrl: routeToUrl("services"),
         };
       case "contact":
         return {
           title: "Contact Us | Chennai Office & Manufacturing Plant",
           description: "Get in touch with the VRM Structures sales and technical team. Contact details, corporate office location in Chennai, and factory address.",
-          canonicalUrl: "https://vrmstructures.in/contact",
+          canonicalUrl: routeToUrl("contact"),
         };
       case "careers":
         return {
           title: "Careers | Join Our Solar Structure Engineering Team",
           description: "Explore career opportunities at VRM Structures. Join us in manufacturing high-durability solar mounting structures and building clean energy solutions.",
-          canonicalUrl: "https://vrmstructures.in/careers",
+          canonicalUrl: routeToUrl("careers"),
         };
       case "articles":
-        if (window.location.hash.startsWith("#articles/")) return null;
+        if (currentRoute.startsWith("articles/")) return null;
         return {
           title: "Solar Engineering Articles & Industry Insights",
           description: "Read our technical articles and blogs on solar module mounting structures design, hot-dip galvanizing standards, wind load compliance, and solar rooftop safety guidelines.",
-          canonicalUrl: "https://vrmstructures.in/articles",
+          canonicalUrl: routeToUrl("articles"),
         };
       case "quote":
         return {
           title: "Interactive 3D Quote Builder | Customized MMS Cost",
           description: "Configure your solar mounting structure online with our interactive 3D quote builder and request customized engineering drawing quotes directly.",
-          canonicalUrl: "https://vrmstructures.in/quote",
+          canonicalUrl: routeToUrl("quote"),
         };
       case "downloads":
-        if (window.location.hash.startsWith("#downloads/")) return null;
+        if (currentRoute.startsWith("downloads/")) return null;
         return {
           title: "Downloads | Technical Datasheets & Product Catalogs",
           description: "Download official technical datasheets, CAD layouts, and product catalogs for all VRM solar mounting structures and safety walkways.",
-          canonicalUrl: "https://vrmstructures.in/downloads",
+          canonicalUrl: routeToUrl("downloads"),
         };
       case "login":
         return {
           title: "Admin Portal & Login",
           description: "Administrative login portal for VRM Structures team members to manage jobs, requests, and articles.",
-          canonicalUrl: "https://vrmstructures.in/login",
+          canonicalUrl: routeToUrl("login"),
+          noindex: true,
         };
       case "not-found":
         return {
           title: "Page Not Found | 404 Error",
           description: "The requested page was not found on VRM Structures. Navigate back to explore our solar mounting solutions.",
-          canonicalUrl: "https://vrmstructures.in/404",
+          canonicalUrl: undefined,
+          noindex: true,
         };
       default:
         return null;
@@ -910,6 +901,7 @@ export default function App() {
           title={seoData.title}
           description={seoData.description}
           canonicalUrl={seoData.canonicalUrl}
+          noindex={"noindex" in seoData ? seoData.noindex : false}
         />
       )}
 
@@ -922,12 +914,14 @@ export default function App() {
             <header className="w-full flex justify-between items-center z-20 relative pointer-events-auto bg-white/95 backdrop-blur-xl shadow-[0_16px_40px_rgba(0,0,0,0.08)] rounded-full px-6 py-2.5 border border-slate-100/80 transition-all duration-300" id="imagine-header">
 
               {/* Brand Logo */}
-              <div
-                onClick={() => navigateTo("home")}
+              <a
+                href="/"
+                aria-label="VRM Structures India Private Limited - Home"
+                onClick={(e) => { e.preventDefault(); navigateTo("home"); }}
                 className="cursor-pointer select-none flex items-center"
               >
                 <ImagineLogo />
-              </div>
+              </a>
 
               {/* Desktop Links Container */}
               <div className="hidden md:flex items-center transition-all duration-300 border-none bg-transparent shadow-none">
@@ -942,7 +936,7 @@ export default function App() {
                           onMouseEnter={() => setProductsDropdownOpen(true)}
                           onMouseLeave={() => setProductsDropdownOpen(false)}
                         >
-                          <button
+                          <a href={pageHref("products")}
                             onClick={(e) => {
                               e.preventDefault();
                               navigateTo("products");
@@ -954,7 +948,7 @@ export default function App() {
                           >
                             {item}
                             <ChevronDown size={14} className={`transition-transform duration-250 ${productsDropdownOpen ? "rotate-180" : ""}`} />
-                          </button>
+                          </a>
 
                           {/* Dropdown Menu */}
                           <AnimatePresence>
@@ -1003,9 +997,9 @@ export default function App() {
                                                 "Solar Pump MMS",
                                                 "Carport MMS"
                                               ].map((productName) => (
-                                                <button
+                                                <a href={pageHref("product-details", productName)}
                                                   key={productName}
-                                                  onClick={() => {
+                                                  onClick={(e) => { e.preventDefault();
                                                     setMountingDropdownOpen(false);
                                                     setProductsDropdownOpen(false);
                                                     navigateTo("product-details", productName);
@@ -1013,7 +1007,7 @@ export default function App() {
                                                   className="w-full text-left px-3 py-2 rounded-lg text-[11px] font-medium text-slate-500 hover:text-indigo-600 hover:bg-slate-50 transition-all cursor-pointer"
                                                 >
                                                   {productName}
-                                                </button>
+                                                </a>
                                               ))}
                                             </motion.div>
                                           )}
@@ -1053,9 +1047,9 @@ export default function App() {
                                                 "FRP Walkway",
                                                 "FRP Handrails"
                                               ].map((productName) => (
-                                                <button
+                                                <a href={pageHref("product-details", productName)}
                                                   key={productName}
-                                                  onClick={() => {
+                                                  onClick={(e) => { e.preventDefault();
                                                     setAluminumDropdownOpen(false);
                                                     setProductsDropdownOpen(false);
                                                     navigateTo("product-details", productName);
@@ -1063,7 +1057,7 @@ export default function App() {
                                                   className="w-full text-left px-3 py-2 rounded-lg text-[11px] font-medium text-slate-500 hover:text-indigo-600 hover:bg-slate-50 transition-all cursor-pointer"
                                                 >
                                                   {productName}
-                                                </button>
+                                                </a>
                                               ))}
                                             </motion.div>
                                           )}
@@ -1103,9 +1097,9 @@ export default function App() {
                                                 "Solar Panels",
                                                 "Inverters"
                                               ].map((productName) => (
-                                                <button
+                                                <a href={pageHref("product-details", productName)}
                                                   key={productName}
-                                                  onClick={() => {
+                                                  onClick={(e) => { e.preventDefault();
                                                     setBosDropdownOpen(false);
                                                     setProductsDropdownOpen(false);
                                                     navigateTo("product-details", productName);
@@ -1113,7 +1107,7 @@ export default function App() {
                                                   className="w-full text-left px-3 py-2 rounded-lg text-[11px] font-medium text-slate-500 hover:text-indigo-600 hover:bg-slate-50 transition-all cursor-pointer"
                                                 >
                                                   {productName}
-                                                </button>
+                                                </a>
                                               ))}
                                             </motion.div>
                                           )}
@@ -1143,7 +1137,7 @@ export default function App() {
                             setBrochuresDropdownOpen(false);
                           }}
                         >
-                          <button
+                          <a href={pageHref("downloads")}
                             onClick={(e) => {
                               e.preventDefault();
                               navigateTo("downloads");
@@ -1155,7 +1149,7 @@ export default function App() {
                           >
                             {item}
                             <ChevronDown size={14} className={`transition-transform duration-250 ${downloadsDropdownOpen ? "rotate-180" : ""}`} />
-                          </button>
+                          </a>
 
                           {/* Dropdown Menu */}
                           <AnimatePresence>
@@ -1219,19 +1213,19 @@ export default function App() {
                                                 { title: "TOPCon G2TB 35mm (590W)", id: "datasheet-topcon-g2tb-35mm" },
                                                 { title: "Waaree Bifacial 30mm (550W)", id: "datasheet-waaree-bi-550" },
                                               ].map((panel) => (
-                                                <button
+                                                <a href={routeToPath(`downloads/${panel.id}`)}
                                                   key={panel.id}
-                                                  onClick={() => {
+                                                  onClick={(e) => { e.preventDefault();
                                                     setSolarPanelsDropdownOpen(false);
                                                     setDownloadsDropdownOpen(false);
-                                                    window.location.hash = `#downloads/${panel.id}`;
+                                                    setRoute(`downloads/${panel.id}`);
                                                     setCurrentPage("downloads");
                                                   }}
                                                   className="w-full text-left px-3 py-2 rounded-lg text-[11px] font-medium text-slate-500 hover:text-indigo-600 hover:bg-slate-50 transition-all cursor-pointer truncate block"
                                                   title={panel.title}
                                                 >
                                                   {panel.title}
-                                                </button>
+                                                </a>
                                               ))}
                                             </motion.div>
                                           )}
@@ -1278,19 +1272,19 @@ export default function App() {
                                                 { title: "On-Grid Architecture Guide", id: "datasheet-ongrid-systems" },
                                                 { title: "Polycab 3-Phase Commercial", id: "datasheet-polycab-commercial-inverter" },
                                               ].map((inv) => (
-                                                <button
+                                                <a href={routeToPath(`downloads/${inv.id}`)}
                                                   key={inv.id}
-                                                  onClick={() => {
+                                                  onClick={(e) => { e.preventDefault();
                                                     setInvertersDropdownOpen(false);
                                                     setDownloadsDropdownOpen(false);
-                                                    window.location.hash = `#downloads/${inv.id}`;
+                                                    setRoute(`downloads/${inv.id}`);
                                                     setCurrentPage("downloads");
                                                   }}
                                                   className="w-full text-left px-3 py-2 rounded-lg text-[11px] font-medium text-slate-500 hover:text-indigo-600 hover:bg-slate-50 transition-all cursor-pointer truncate block"
                                                   title={inv.title}
                                                 >
                                                   {inv.title}
-                                                </button>
+                                                </a>
                                               ))}
                                             </motion.div>
                                           )}
@@ -1336,19 +1330,19 @@ export default function App() {
                                                 { title: "VRM Corporate Brochure", id: "datasheet-vrm-corporate-brochure" },
                                                 { title: "PM Surya Ghar Kit Catalogue", id: "datasheet-pm-surya-ghar-kit" },
                                               ].map((brochure) => (
-                                                <button
+                                                <a href={routeToPath(`downloads/${brochure.id}`)}
                                                   key={brochure.id}
-                                                  onClick={() => {
+                                                  onClick={(e) => { e.preventDefault();
                                                     setBrochuresDropdownOpen(false);
                                                     setDownloadsDropdownOpen(false);
-                                                    window.location.hash = `#downloads/${brochure.id}`;
+                                                    setRoute(`downloads/${brochure.id}`);
                                                     setCurrentPage("downloads");
                                                   }}
                                                   className="w-full text-left px-3 py-2 rounded-lg text-[11px] font-medium text-slate-500 hover:text-indigo-600 hover:bg-slate-50 transition-all cursor-pointer truncate block"
                                                   title={brochure.title}
                                                 >
                                                   {brochure.title}
-                                                </button>
+                                                </a>
                                               ))}
                                             </motion.div>
                                           )}
@@ -1367,7 +1361,7 @@ export default function App() {
                     }
 
                     return (
-                      <button
+                      <a href={pageHref(item.toLowerCase() as any)}
                         key={item}
                         onClick={(e) => {
                           e.preventDefault();
@@ -1379,7 +1373,7 @@ export default function App() {
                           }`}
                       >
                         {item}
-                      </button>
+                      </a>
                     );
                   })}
                 </nav>
@@ -1387,14 +1381,14 @@ export default function App() {
 
               {/* Action Buttons */}
               <div className="hidden md:flex items-center gap-2">
-                <motion.button
+                <motion.a href={pageHref("quote")}
                   whileHover={{ scale: 1.03 }}
                   whileTap={{ scale: 0.97 }}
-                  onClick={() => navigateTo("quote")}
+                  onClick={(e) => { e.preventDefault(); navigateTo("quote"); }}
                   className="text-[12px] font-bold px-5 py-2 rounded-full transition-all duration-200 cursor-pointer border-none bg-black text-white hover:bg-slate-900 shadow-md"
                 >
                   Request a Quote
-                </motion.button>
+                </motion.a>
 
                 <motion.button
                   whileHover={{ scale: 1.03 }}
@@ -1433,8 +1427,8 @@ export default function App() {
                       if (item === "Products") {
                         return (
                           <div key={item} className="flex flex-col w-full">
-                            <button
-                              onClick={() => {
+                            <a href={pageHref("products")}
+                              onClick={(e) => { e.preventDefault();
                                 navigateTo("products");
                                 setMobileMenuOpen(false);
                               }}
@@ -1442,7 +1436,7 @@ export default function App() {
                             >
                               <span className={isCurrent ? "text-indigo-600 font-bold" : ""}>{item}</span>
                               <ChevronDown size={16} className="text-slate-400" />
-                            </button>
+                            </a>
 
                             {/* Mobile Sub-Links */}
                             <div className="flex flex-col pl-4 border-l border-slate-100 mt-1 gap-1.5 py-1">
@@ -1470,16 +1464,16 @@ export default function App() {
                                           "Solar Pump MMS",
                                           "Carport MMS"
                                         ].map((productName) => (
-                                          <button
+                                          <a href={pageHref("product-details", productName)}
                                             key={productName}
-                                            onClick={() => {
+                                            onClick={(e) => { e.preventDefault();
                                               navigateTo("product-details", productName);
                                               setMobileMenuOpen(false);
                                             }}
                                             className="py-1.5 text-[11px] text-slate-400 hover:text-indigo-600 text-left font-medium cursor-pointer"
                                           >
                                             {productName}
-                                          </button>
+                                          </a>
                                         ))}
                                       </div>
                                     </div>
@@ -1504,16 +1498,16 @@ export default function App() {
                                           "FRP Walkway",
                                           "FRP Handrails"
                                         ].map((productName) => (
-                                          <button
+                                          <a href={pageHref("product-details", productName)}
                                             key={productName}
-                                            onClick={() => {
+                                            onClick={(e) => { e.preventDefault();
                                               navigateTo("product-details", productName);
                                               setMobileMenuOpen(false);
                                             }}
                                             className="py-1.5 text-[11px] text-slate-400 hover:text-indigo-600 text-left font-medium cursor-pointer"
                                           >
                                             {productName}
-                                          </button>
+                                          </a>
                                         ))}
                                       </div>
                                     </div>
@@ -1538,16 +1532,16 @@ export default function App() {
                                           "Solar Panels",
                                           "Inverters"
                                         ].map((productName) => (
-                                          <button
+                                          <a href={pageHref("product-details", productName)}
                                             key={productName}
-                                            onClick={() => {
+                                            onClick={(e) => { e.preventDefault();
                                               navigateTo("product-details", productName);
                                               setMobileMenuOpen(false);
                                             }}
                                             className="py-1.5 text-[11px] text-slate-400 hover:text-indigo-600 text-left font-medium cursor-pointer"
                                           >
                                             {productName}
-                                          </button>
+                                          </a>
                                         ))}
                                       </div>
                                     </div>
@@ -1576,15 +1570,15 @@ export default function App() {
                             {/* Mobile Sub-Links */}
                             {mobileDownloadsOpen && (
                               <div className="flex flex-col pl-4 border-l border-slate-100 mt-1 gap-1.5 py-1">
-                                <button
-                                  onClick={() => {
+                                <a href={pageHref("downloads")}
+                                  onClick={(e) => { e.preventDefault();
                                     navigateTo("downloads");
                                     setMobileMenuOpen(false);
                                   }}
                                   className="py-1.5 text-xs text-indigo-600 hover:text-indigo-800 text-left font-bold cursor-pointer"
                                 >
                                   View All Downloads →
-                                </button>
+                                </a>
                                 {[
                                   "Solar Panels",
                                   "Inverters",
@@ -1640,27 +1634,27 @@ export default function App() {
                                       {/* Mobile Sub-Sub Links */}
                                       {isSubOpen && (
                                         <div className="flex flex-col pl-4 border-l border-slate-100/50 mt-1 gap-1 py-0.5">
-                                          <button
-                                            onClick={() => {
+                                          <a href={pageHref("downloads", categorySlug)}
+                                            onClick={(e) => { e.preventDefault();
                                               navigateTo("downloads", categorySlug);
                                               setMobileMenuOpen(false);
                                             }}
                                             className="py-1.5 text-[11px] text-indigo-600 hover:text-indigo-800 text-left font-bold cursor-pointer"
                                           >
                                             View All {subItem} →
-                                          </button>
+                                          </a>
                                           {subDocs.map((doc) => (
-                                            <button
+                                            <a href={routeToPath(`downloads/${doc.id}`)}
                                               key={doc.id}
-                                              onClick={() => {
-                                                window.location.hash = `#downloads/${doc.id}`;
+                                              onClick={(e) => { e.preventDefault();
+                                                setRoute(`downloads/${doc.id}`);
                                                 setCurrentPage("downloads");
                                                 setMobileMenuOpen(false);
                                               }}
                                               className="py-1.5 text-[11px] text-slate-400 hover:text-indigo-600 text-left font-medium cursor-pointer truncate"
                                             >
                                               {doc.title}
-                                            </button>
+                                            </a>
                                           ))}
                                         </div>
                                       )}
@@ -1674,9 +1668,9 @@ export default function App() {
                       }
 
                       return (
-                        <button
+                        <a href={pageHref(item.toLowerCase() as any)}
                           key={item}
-                          onClick={() => {
+                          onClick={(e) => { e.preventDefault();
                             navigateTo(item.toLowerCase() as any);
                             setMobileMenuOpen(false);
                           }}
@@ -1684,18 +1678,18 @@ export default function App() {
                         >
                           <span className={isCurrent ? "text-indigo-600 font-bold" : ""}>{item}</span>
                           <ChevronRight size={16} className="text-slate-400" />
-                        </button>
+                        </a>
                       );
                     })}
-                    <button
-                      onClick={() => {
+                    <a href={pageHref("contact")}
+                      onClick={(e) => { e.preventDefault();
                         navigateTo("contact");
                         setMobileMenuOpen(false);
                       }}
                       className="w-full bg-white/90 border border-white/60 text-slate-900 text-center py-3 rounded-xl font-bold mt-2 hover:bg-white transition-colors shadow-sm"
                     >
                       Request a Quote
-                    </button>
+                    </a>
                   </div>
                 </motion.div>
               )}
@@ -2171,10 +2165,10 @@ export default function App() {
 
             {/* Centered Explore More Button styled like Products & About Us */}
             <div className="flex justify-center mt-12 md:mt-16 relative z-20">
-              <motion.button
+              <motion.a href={pageHref("products")}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.98 }}
-                onClick={() => navigateTo("products")}
+                onClick={(e) => { e.preventDefault(); navigateTo("products"); }}
                 className="inline-flex p-[1.5px] rounded-full bg-gradient-to-r from-blue-600 via-indigo-500 via-purple-600 via-blue-500 to-blue-600 animate-gradient-shift shadow-[0_6px_20px_rgba(99,102,241,0.2)] group cursor-pointer focus:outline-none"
               >
                 <div className="inline-flex items-center justify-center bg-white hover:bg-slate-50 transition-colors duration-350 px-8 py-3 rounded-full">
@@ -2183,7 +2177,7 @@ export default function App() {
                     <ChevronRight size={14} className="text-slate-900 transition-transform duration-350 group-hover:translate-x-1" />
                   </span>
                 </div>
-              </motion.button>
+              </motion.a>
             </div>
           </div>
 
@@ -2683,41 +2677,17 @@ export default function App() {
 
                 {/* Insights Cards Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-16 w-full">
-                  {[
-                    {
-                      id: "mms-foundation-solar-success",
-                      title: "Building the Foundation for India’s Solar Success: The Role of Module Mounting Structures - VRM STRUCTURES",
-                      category: "Placement Yield",
-                      excerpt: "In the dynamic landscape of India's solar industry, Module Mounting Structures (MMS) stand as essential pillars supporting the nation's ambitious renewable energy goals. As the country strives to enhance its solar capacity and reduce dependency on fossil fuels, the significance of robust and efficient MMS cannot be overstated.",
-                      date: "July 10, 2026",
-                      readTime: "5 min read",
-                      author: "Velmurugan Rathinam (Founder & Director Of VRM Structure)",
-                      colorFrom: "#FF5D63",
-                      colorTo: "#FF8B91"
-                    },
-                    {
-                      id: "surya-ghar-yojana-mms",
-                      title: "MMS for PM Surya Ghar Muft Bijli Yojana - VRM STRUCTURES",
-                      category: "Placement Yield",
-                      excerpt: "VRM Structures India Private Limited provides high-quality Module Mounting Structures (MMS) ready stock for the PM Surya Ghar Muft Bijli Yojana, supporting projects from 2kW to 10kW with hot-dip galvanized materials.",
-                      date: "June 28, 2026",
-                      readTime: "4 min read",
-                      author: "Velmurugan Rathinam (Founder & Director Of VRM Structures)",
-                      colorFrom: "#FF8C42",
-                      colorTo: "#FFAE7A"
-                    },
-                    {
-                      id: "boost-bifacial-performance-mms",
-                      title: "Boost Bifacial Panel Performance with VRM Structures: Maximizing Solar Generation Efficiency",
-                      category: "Wind Dynamics",
-                      excerpt: "Discover how specially designed mounting structures, elevated layouts, optimized tilt angles, and tracking systems from VRM Structures unlock the maximum energy output of bifacial solar panels.",
-                      date: "June 15, 2026",
-                      readTime: "6 min read",
-                      author: "Velmurugan Rathinam (Founder & Director Of VRM Structures)",
-                      colorFrom: "#4D62E8",
-                      colorTo: "#7B8CFF"
-                    }
-                  ].map((item, idx) => (
+                  {LINKEDIN_ARTICLES.slice(0, 3).map((article) => ({
+                    id: article.id,
+                    title: article.title,
+                    category: article.category,
+                    excerpt: article.excerpt,
+                    date: article.date,
+                    readTime: article.readTime.replace("Min Read", "min read"),
+                    author: `${article.author} (${article.authorRole})`,
+                    colorFrom: article.colorFrom,
+                    colorTo: article.colorTo
+                  })).map((item, idx) => (
                     <InsightCard key={item.title} item={item} idx={idx} onClick={() => navigateTo("articles", item.id)} />
                   ))}
                 </div>
@@ -2817,8 +2787,8 @@ export default function App() {
 
                     {/* Bottom CTA to contact */}
                     <div className="mt-12 flex justify-center w-full max-w-4xl">
-                      <motion.button
-                        onClick={() => navigateTo("contact")}
+                      <motion.a href={pageHref("contact")}
+                        onClick={(e) => { e.preventDefault(); navigateTo("contact"); }}
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.98 }}
                         className="inline-flex p-[1.5px] rounded-full bg-gradient-to-r from-blue-600 via-indigo-500 via-purple-600 via-blue-500 to-blue-600 animate-gradient-shift shadow-[0_6px_20px_rgba(99,102,241,0.2)] group cursor-pointer focus:outline-none"
@@ -2829,7 +2799,7 @@ export default function App() {
                             <ChevronRight size={14} className="text-slate-900 transition-transform duration-350 group-hover:translate-x-1" />
                           </span>
                         </div>
-                      </motion.button>
+                      </motion.a>
                     </div>
 
                   </div>
@@ -3003,9 +2973,9 @@ export default function App() {
         <LoginPage
           onNavigate={(page, targetId) => navigateTo(page, targetId)}
           initialTab={
-            window.location.hash.includes("jobs")
+            currentRoute.includes("jobs")
               ? "jobs"
-              : window.location.hash.includes("articles")
+              : currentRoute.includes("articles")
                 ? "articles"
                 : "overview"
           }
@@ -3092,11 +3062,11 @@ export default function App() {
                       Products
                     </span>
                     <ul className="flex flex-col gap-3 text-xs sm:text-[13px] text-slate-700 font-normal">
-                      <li><button onClick={() => navigateTo("products")} className="hover:text-indigo-600 transition-colors text-left cursor-pointer">Metal Roof</button></li>
-                      <li><button onClick={() => navigateTo("products")} className="hover:text-indigo-600 transition-colors text-left cursor-pointer">RCC Roof</button></li>
-                      <li><button onClick={() => navigateTo("products")} className="hover:text-indigo-600 transition-colors text-left cursor-pointer">Ground Mount</button></li>
-                      <li><button onClick={() => navigateTo("products")} className="hover:text-indigo-600 transition-colors text-left cursor-pointer">Carports</button></li>
-                      <li><button onClick={() => navigateTo("products")} className="hover:text-indigo-600 transition-colors text-left cursor-pointer">Accessories</button></li>
+                      <li><a href={pageHref("products")} onClick={(e) => { e.preventDefault(); navigateTo("products"); }} className="hover:text-indigo-600 transition-colors text-left cursor-pointer">Metal Roof</a></li>
+                      <li><a href={pageHref("products")} onClick={(e) => { e.preventDefault(); navigateTo("products"); }} className="hover:text-indigo-600 transition-colors text-left cursor-pointer">RCC Roof</a></li>
+                      <li><a href={pageHref("products")} onClick={(e) => { e.preventDefault(); navigateTo("products"); }} className="hover:text-indigo-600 transition-colors text-left cursor-pointer">Ground Mount</a></li>
+                      <li><a href={pageHref("products")} onClick={(e) => { e.preventDefault(); navigateTo("products"); }} className="hover:text-indigo-600 transition-colors text-left cursor-pointer">Carports</a></li>
+                      <li><a href={pageHref("products")} onClick={(e) => { e.preventDefault(); navigateTo("products"); }} className="hover:text-indigo-600 transition-colors text-left cursor-pointer">Accessories</a></li>
                     </ul>
                   </div>
 
@@ -3106,11 +3076,11 @@ export default function App() {
                       Services
                     </span>
                     <ul className="flex flex-col gap-3 text-xs sm:text-[13px] text-slate-700 font-normal">
-                      <li><button onClick={() => navigateTo("services")} className="hover:text-indigo-600 transition-colors text-left cursor-pointer">Engineering</button></li>
-                      <li><button onClick={() => navigateTo("services")} className="hover:text-indigo-600 transition-colors text-left cursor-pointer">Fabrication</button></li>
-                      <li><button onClick={() => navigateTo("services")} className="hover:text-indigo-600 transition-colors text-left cursor-pointer">STAAD Pro</button></li>
-                      <li><button onClick={() => navigateTo("services")} className="hover:text-indigo-600 transition-colors text-left cursor-pointer">Galvanizing</button></li>
-                      <li><button onClick={() => navigateTo("services")} className="hover:text-indigo-600 transition-colors text-left cursor-pointer">Installation</button></li>
+                      <li><a href={pageHref("services")} onClick={(e) => { e.preventDefault(); navigateTo("services"); }} className="hover:text-indigo-600 transition-colors text-left cursor-pointer">Engineering</a></li>
+                      <li><a href={pageHref("services")} onClick={(e) => { e.preventDefault(); navigateTo("services"); }} className="hover:text-indigo-600 transition-colors text-left cursor-pointer">Fabrication</a></li>
+                      <li><a href={pageHref("services")} onClick={(e) => { e.preventDefault(); navigateTo("services"); }} className="hover:text-indigo-600 transition-colors text-left cursor-pointer">STAAD Pro</a></li>
+                      <li><a href={pageHref("services")} onClick={(e) => { e.preventDefault(); navigateTo("services"); }} className="hover:text-indigo-600 transition-colors text-left cursor-pointer">Galvanizing</a></li>
+                      <li><a href={pageHref("services")} onClick={(e) => { e.preventDefault(); navigateTo("services"); }} className="hover:text-indigo-600 transition-colors text-left cursor-pointer">Installation</a></li>
                     </ul>
                   </div>
 
@@ -3120,10 +3090,10 @@ export default function App() {
                       Company
                     </span>
                     <ul className="flex flex-col gap-3 text-xs sm:text-[13px] text-slate-700 font-normal">
-                      <li><button onClick={() => navigateTo("about")} className="hover:text-indigo-600 transition-colors text-left cursor-pointer">About Us</button></li>
-                      <li><button onClick={() => navigateTo("careers")} className="hover:text-indigo-600 transition-colors text-left cursor-pointer">Careers</button></li>
-                      <li><button onClick={() => navigateTo("articles")} className="hover:text-indigo-600 transition-colors text-left cursor-pointer">Blogs</button></li>
-                      <li><button onClick={() => navigateTo("contact")} className="hover:text-indigo-600 transition-colors text-left cursor-pointer">Contact Us</button></li>
+                      <li><a href={pageHref("about")} onClick={(e) => { e.preventDefault(); navigateTo("about"); }} className="hover:text-indigo-600 transition-colors text-left cursor-pointer">About Us</a></li>
+                      <li><a href={pageHref("careers")} onClick={(e) => { e.preventDefault(); navigateTo("careers"); }} className="hover:text-indigo-600 transition-colors text-left cursor-pointer">Careers</a></li>
+                      <li><a href={pageHref("articles")} onClick={(e) => { e.preventDefault(); navigateTo("articles"); }} className="hover:text-indigo-600 transition-colors text-left cursor-pointer">Blogs</a></li>
+                      <li><a href={pageHref("contact")} onClick={(e) => { e.preventDefault(); navigateTo("contact"); }} className="hover:text-indigo-600 transition-colors text-left cursor-pointer">Contact Us</a></li>
                     </ul>
                   </div>
 
@@ -3133,8 +3103,8 @@ export default function App() {
                       Support
                     </span>
                     <ul className="flex flex-col gap-3 text-xs sm:text-[13px] text-slate-700 font-normal">
-                      <li><button onClick={() => navigateTo("home", "faq")} className="hover:text-indigo-600 transition-colors text-left cursor-pointer">FAQ's</button></li>
-                      <li><button onClick={() => navigateTo("contact")} className="hover:text-indigo-600 transition-colors text-left cursor-pointer">Contact Us</button></li>
+                      <li><a href={pageHref("home", "faq")} onClick={(e) => { e.preventDefault(); navigateTo("home", "faq"); }} className="hover:text-indigo-600 transition-colors text-left cursor-pointer">FAQ's</a></li>
+                      <li><a href={pageHref("contact")} onClick={(e) => { e.preventDefault(); navigateTo("contact"); }} className="hover:text-indigo-600 transition-colors text-left cursor-pointer">Contact Us</a></li>
                     </ul>
                   </div>
                 </div>

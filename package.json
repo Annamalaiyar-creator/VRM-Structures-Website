@@ -8,10 +8,11 @@
     "api": "node server.js",
     "admin:create": "node scripts/create-admin.js",
     "start": "node server.js",
-    "build": "vite build && rm -rf assets videos && cp -r dist/assets assets && cp -r dist/videos videos",
+    "build": "vite build && node scripts/prerender.mjs && rm -rf assets videos && cp -r dist/assets assets && cp -r dist/videos videos",
     "preview": "vite preview",
     "clean": "rm -rf dist",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "prerender": "node scripts/prerender.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
@@ -38,6 +39,7 @@
     "@types/node": "^22.14.0",
     "autoprefixer": "^10.4.21",
     "esbuild": "^0.25.0",
+    "puppeteer-core": "^24.43.1",
     "tailwindcss": "^4.1.14",
     "tsx": "^4.21.0",
     "typescript": "~5.8.2",

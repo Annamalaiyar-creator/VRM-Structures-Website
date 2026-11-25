@@ -10,7 +10,8 @@ import {
   ChevronRight,
   X,
   Menu,
-  Calendar
+  Calendar,
+  Check
 } from "lucide-react";
 import {
   ImagineLogo,
@@ -18,6 +19,9 @@ import {
 } from "./Artworks";
 import ScrollDownButton from "./ScrollDownButton";
 import { databaseApi } from "../lib/api";
+import { ROUTE_EVENT, routeHash, setRoute, routeToPath, routeToUrl, SITE_ORIGIN } from "../lib/router";
+import SEO from "./SEO";
+import { LINKEDIN_ARTICLES } from "../data/linkedinArticles";
 
 interface Article {
   id: string;
@@ -33,10 +37,17 @@ interface Article {
   image: string;
   colorFrom: string;
   colorTo: string;
+  /** Original LinkedIn post, if the article was first published there. */
+  linkedinUrl?: string;
+  /** ISO publish date for structured data. */
+  datePublished?: string;
+  /** Render paragraphs as written (no automatic bold lead-in). */
+  plainParagraphs?: boolean;
 }
 
 const getDefaultArticles = (): Article[] => {
   return [
+    ...LINKEDIN_ARTICLES,
     {
       id: "mms-foundation-solar-success",
       title: "Building the Foundation for India’s Solar Success: The Role of Module Mounting Structures - VRM STRUCTURES",
@@ -185,7 +196,11 @@ export default function ArticlesPage({ onNavigate, onContactClick }: ArticlesPag
   React.useEffect(() => {
     let active = true;
     databaseApi.articles().then((records) => {
-      if (active && records.length) setArticlesList(records as Article[]);
+      if (active && records.length) {
+        const fromDb = records as Article[];
+        const missing = LINKEDIN_ARTICLES.filter((a) => !fromDb.some((r) => r.id === a.id));
+        setArticlesList([...missing, ...fromDb]);
+      }
     }).catch((error) => console.error("Unable to load articles from database:", error));
     return () => { active = false; };
   }, []);
@@ -198,7 +213,7 @@ export default function ArticlesPage({ onNavigate, onContactClick }: ArticlesPag
   // Sync selectedArticle with hash on mount/change to support browser back button
   React.useEffect(() => {
     const checkHash = () => {
-      const hash = window.location.hash;
+      const hash = routeHash();
       const match = hash.match(/articles\/([^?]+)/);
       if (match) {
         const articleId = match[1];
@@ -212,8 +227,8 @@ export default function ArticlesPage({ onNavigate, onContactClick }: ArticlesPag
     };
 
     checkHash();
-    window.addEventListener("hashchange", checkHash);
-    return () => window.removeEventListener("hashchange", checkHash);
+    window.addEventListener(ROUTE_EVENT, checkHash);
+    return () => window.removeEventListener(ROUTE_EVENT, checkHash);
   }, [articlesList]);
 
   if (selectedArticle) {
@@ -256,6 +271,26 @@ export default function ArticlesPage({ onNavigate, onContactClick }: ArticlesPag
     return (
       <div className="bg-[#f3f4f6] overflow-x-hidden font-sans text-slate-800 antialiased selection:bg-rose-200 selection:text-rose-900 flex flex-col min-h-screen pt-20">
 
+        <SEO
+          title={selectedArticle.title.replace(/\s*-\s*VRM STRUCTURES$/i, "")}
+          description={selectedArticle.excerpt.length > 160 ? `${selectedArticle.excerpt.slice(0, 157).trimEnd()}...` : selectedArticle.excerpt}
+          canonicalUrl={routeToUrl(`articles/${selectedArticle.id}`)}
+          ogType="article"
+          ogImage={selectedArticle.image.startsWith("/") ? `${SITE_ORIGIN}${selectedArticle.image}` : selectedArticle.image}
+          schema={{
+            "@context": "https://schema.org",
+            "@type": "BlogPosting",
+            headline: selectedArticle.title,
+            description: selectedArticle.excerpt,
+            image: selectedArticle.image.startsWith("/") ? `${SITE_ORIGIN}${selectedArticle.image}` : selectedArticle.image,
+            ...(selectedArticle.datePublished ? { datePublished: selectedArticle.datePublished } : {}),
+            author: { "@type": "Person", name: selectedArticle.author, jobTitle: selectedArticle.authorRole },
+            publisher: { "@id": "https://vrmstructures.in/#organization" },
+            mainEntityOfPage: routeToUrl(`articles/${selectedArticle.id}`),
+            ...(selectedArticle.linkedinUrl ? { sameAs: selectedArticle.linkedinUrl } : {}),
+          }}
+        />
+
         {/* DETAILED ARTICLE VIEW - Seamless layout directly on the background */}
         <div className="flex-1 bg-[#f3f4f6] animate-fade-in">
           <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-16">
@@ -264,7 +299,7 @@ export default function ArticlesPage({ onNavigate, onContactClick }: ArticlesPag
             <div className="mb-8 flex flex-col items-start gap-4">
               <motion.button
                 whileHover={{ x: -4 }}
-                onClick={() => { window.location.hash = "articles"; }}
+                onClick={() => { setRoute("articles"); }}
                 className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700 hover:text-slate-950 transition-colors group cursor-pointer"
               >
                 <ArrowLeft size={16} className="transition-transform group-hover:-translate-x-0.5" />
@@ -308,7 +343,32 @@ export default function ArticlesPage({ onNavigate, onContactClick }: ArticlesPag
             {/* Article Content */}
             <div className="prose prose-slate max-w-none text-left font-sans text-[16px] leading-[28px] text-slate-700 space-y-6">
               {selectedArticle.content.map((p, idx) => {
-                if (p.startsWith("HEADING:")) {
+                if (p.startsWith("LIST:") || p.startsWith("CHECKLIST:")) {
+                  const isCheck = p.startsWith("CHECKLIST:");
+                  const items = p.replace(/^(CHECK)?LIST:/, "").split("||");
+                  return (
+                    <ul key={idx} className="space-y-2.5 pl-1 font-light text-slate-600">
+                      {items.map((item, i) => (
+                        <li key={i} className="flex items-start gap-3">
+                          {isCheck ? (
+                            <span className="mt-1 shrink-0 w-5 h-5 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center">
+                              <Check size={12} className="text-emerald-600 stroke-[3]" />
+                            </span>
+                          ) : (
+                            <span className="mt-[11px] shrink-0 w-1.5 h-1.5 rounded-full bg-indigo-500" />
+                          )}
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  );
+                } else if (p.startsWith("QUOTE:")) {
+                  return (
+                    <blockquote key={idx} className="border-l-4 border-indigo-500 bg-white/70 rounded-r-2xl px-6 py-4 text-slate-800 font-medium text-[17px] leading-[28px]">
+                      {p.replace("QUOTE:", "")}
+                    </blockquote>
+                  );
+                } else if (p.startsWith("HEADING:")) {
                   const headingText = p.replace("HEADING:", "");
                   return (
                     <h3 key={idx} className="text-xl sm:text-2xl font-bold text-slate-800 mt-8 mb-3 font-sans">
@@ -339,8 +399,7 @@ export default function ArticlesPage({ onNavigate, onContactClick }: ArticlesPag
                     <div key={idx} className="my-6">
                       <a
                         href={url}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                        {...(url.startsWith("/") ? {} : { target: "_blank", rel: "noopener noreferrer" })}
                         className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-all shadow-sm hover:shadow active:scale-95 cursor-pointer"
                       >
                         {label}
@@ -351,17 +410,27 @@ export default function ArticlesPage({ onNavigate, onContactClick }: ArticlesPag
                 } else {
                   return (
                     <p key={idx} className="font-light text-slate-600">
-                      {formatParagraphText(p)}
+                      {selectedArticle.plainParagraphs ? p : formatParagraphText(p)}
                     </p>
                   );
                 }
               })}
             </div>
 
+            {selectedArticle.linkedinUrl && (
+              <p className="mt-12 text-sm text-slate-500 font-light">
+                First published on{" "}
+                <a href={selectedArticle.linkedinUrl} target="_blank" rel="noopener noreferrer" className="font-semibold text-indigo-600 hover:text-indigo-800 underline underline-offset-2">
+                  LinkedIn
+                </a>
+                . Join the discussion there.
+              </p>
+            )}
+
             {/* Bottom Back Button & Share */}
             <div className="border-t border-slate-200 mt-16 pt-8 flex justify-between items-center">
               <button
-                onClick={() => { window.location.hash = "articles"; }}
+                onClick={() => { setRoute("articles"); }}
                 className="inline-flex items-center gap-2 text-sm font-semibold text-indigo-600 hover:text-indigo-800 transition-colors cursor-pointer"
               >
                 <ArrowLeft size={16} />
@@ -545,14 +614,16 @@ export default function ArticlesPage({ onNavigate, onContactClick }: ArticlesPag
           {filteredArticles.length > 0 && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {filteredArticles.map((article, idx) => (
-                <motion.div
+                <motion.a
                   key={article.id}
+                  href={routeToPath(`articles/${article.id}`)}
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.6, delay: idx * 0.08 }}
-                  onClick={() => {
-                    window.location.hash = `articles/${article.id}`;
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setRoute(`articles/${article.id}`);
                     window.scrollTo({ top: 0, behavior: "instant" });
                   }}
                   className="bg-[#E5E7EB]/50 border-[6px] border-white rounded-[2.5rem] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.06)] hover:shadow-[0_20px_50px_rgba(0,0,0,0.12)] transition-all duration-300 flex flex-col justify-between text-left group cursor-pointer relative"
@@ -612,7 +683,7 @@ export default function ArticlesPage({ onNavigate, onContactClick }: ArticlesPag
                       {article.date}
                     </span>
                   </div>
-                </motion.div>
+                </motion.a>
               ))}
             </div>
           )}

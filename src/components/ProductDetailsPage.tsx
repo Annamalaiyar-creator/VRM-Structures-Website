@@ -1,6 +1,7 @@
 import React, { useState, useRef, useLayoutEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import SEO from "./SEO";
+import { routeToUrl, slugify } from "../lib/router";
 import {
   Shield,
   Layers,
@@ -36,6 +37,8 @@ import * as THREE from "three";
 function RCCRoof3DViewer({ url, zoom = 1.0 }: { url: string; zoom?: number }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isLoaded, setIsLoaded] = useState(false);
+  // Set when WebGL can't start (old devices, locked-down PCs, crawlers); without it the page went blank.
+  const [webglUnavailable, setWebglUnavailable] = useState(false);
 
   const zoomInRef = useRef<() => void>(() => {});
   const zoomOutRef = useRef<() => void>(() => {});
@@ -51,7 +54,15 @@ function RCCRoof3DViewer({ url, zoom = 1.0 }: { url: string; zoom?: number }) {
     const camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 1000);
     camera.position.set(2.4, 1.4, 2.4);
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
+    let renderer: THREE.WebGLRenderer;
+    try {
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
+    } catch (error) {
+      console.warn("3D preview unavailable: WebGL could not be started.", error);
+      setWebglUnavailable(true);
+      setIsLoaded(true);
+      return;
+    }
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = true;
@@ -252,6 +263,11 @@ function RCCRoof3DViewer({ url, zoom = 1.0 }: { url: string; zoom?: number }) {
         </div>
       )}
       <div ref={containerRef} className="w-full h-full cursor-grab active:cursor-grabbing" />
+      {webglUnavailable && (
+        <div className="absolute inset-0 flex items-center justify-center text-white/70 text-xs font-light text-center px-4">
+          3D preview is not supported on this device.
+        </div>
+      )}
       
       {/* Interactive Overlay Badge */}
       <div className="absolute top-5 left-5 bg-white/10 backdrop-blur-md px-4 py-1.5 rounded-full border border-white/20 shadow-lg select-none pointer-events-none z-10 flex items-center justify-center text-center">
@@ -286,7 +302,7 @@ interface ProductDetailsPageProps {
   selectedProductTitle?: string;
 }
 
-export default function ProductDetailsPage({ onNavigate, selectedProductTitle = "Metal Roof MMS" }: ProductDetailsPageProps) {
+export default function ProductDetailsPage({ onNavigate, selectedProductTitle: requestedProduct = "Metal Roof MMS" }: ProductDetailsPageProps) {
   const [activeTab, setActiveTab] = useState<"specs" | "standards" | "guide">("specs");
 
   const productDetailsMap = {
@@ -891,6 +907,11 @@ export default function ProductDetailsPage({ onNavigate, selectedProductTitle = 
     }
   };
 
+  // The URL carries a slug (/products/rcc-roof-mms/); menus pass the display title. Accept both.
+  const selectedProductTitle =
+    Object.keys(productDetailsMap).find((key) => key === requestedProduct || slugify(key) === slugify(requestedProduct)) ||
+    requestedProduct;
+
   // Smart lookup to find product by key or normalized name
   const normalizedSearch = selectedProductTitle?.trim().toLowerCase() || "";
   const matchedEntry = Object.entries(productDetailsMap).find(([key]) => {
@@ -904,14 +925,14 @@ export default function ProductDetailsPage({ onNavigate, selectedProductTitle = 
   });
 
   const productDetails = matchedEntry ? matchedEntry[1] : ((productDetailsMap as any)[selectedProductTitle] || (productDetailsMap as any)["Aluminum Module Mounting Structure"] || productDetailsMap["RCC Roof MMS"]);
-  const currentSlug = selectedProductTitle?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || "aluminum-module-mounting-structure";
+  const currentSlug = slugify(selectedProductTitle || "") || "aluminum-module-mounting-structure";
 
   return (
     <div className="bg-[#F5F1EE] overflow-x-hidden font-sans text-slate-800 antialiased selection:bg-rose-200 selection:text-rose-900 flex flex-col min-h-screen">
       <SEO
         title={productDetails.seoTitle || `${productDetails.title} Manufacturer | VRM Structures`}
         description={productDetails.seoDescription || productDetails.desc}
-        canonicalUrl={`https://vrmstructures.in/products/${currentSlug}`}
+        canonicalUrl={routeToUrl(`products/${currentSlug}`)}
         schema={{
           "@context": "https://schema.org",
           "@type": "Product",

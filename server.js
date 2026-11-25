@@ -3,7 +3,7 @@ import express from "express";
 import sql from "mssql";
 import bcrypt from "bcryptjs";
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -307,9 +307,25 @@ app.post("/api/submissions/:kind", async (request, response) => {
   } catch (error) { handleError(response, error); }
 });
 
+// 301 redirects from the old website's URLs to their new pages (same list as web.config).
+const legacyRedirects = JSON.parse(readFileSync(path.join(projectRoot, "src", "data", "legacyRedirects.json"), "utf8"));
+app.use((request, response, next) => {
+  if (request.method !== "GET" && request.method !== "HEAD") return next();
+  const key = decodeURIComponent(request.path).toLowerCase().replace(/^\/+|\/+$/g, "");
+  const target = legacyRedirects[key] || (key.startsWith("home/") ? "/" : null);
+  if (target && key !== "_comment") return response.redirect(301, target);
+  next();
+});
+
 if (existsSync(productionFiles)) {
+  // Prerendered pages live at dist/<route>/index.html; express.static serves them
+  // (and redirects /about to /about/, matching the canonical URLs).
   app.use(express.static(productionFiles));
-  app.get("*", (_request, response) => response.sendFile(path.join(productionFiles, "index.html")));
+  // Anything else is not a real page: send the app shell with a 404 status so it isn't indexed.
+  const notFoundPage = existsSync(path.join(productionFiles, "404.html"))
+    ? path.join(productionFiles, "404.html")
+    : path.join(productionFiles, "index.html");
+  app.get("*", (_request, response) => response.status(404).sendFile(notFoundPage));
 }
 
 app.listen(port, () => console.log(`VRM API listening on port ${port}`));

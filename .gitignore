@@ -6,3 +6,7 @@ coverage/
 .env*
 !.env.example
 *.zip
+
+# Local only - do not publish (project root is the live web root)
+vrmstructures.in-audit/
+.claude/

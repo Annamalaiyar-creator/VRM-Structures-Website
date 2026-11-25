@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { ImagineLogo } from './Artworks';
 import { databaseApi } from '../lib/api';
+import { setRoute } from "../lib/router";
 
 interface LoginPageProps {
   onNavigate?: (page: any, targetId?: string) => void;
@@ -1426,7 +1427,7 @@ export default function LoginPage({ onNavigate, initialTab }: LoginPageProps) {
                   setAdminSubTab('overview');
                   setEditingJob(null);
                   setEditingArticle(null);
-                  window.location.hash = 'admin/dashboard';
+                  setRoute('admin/dashboard');
                 }}
                 className={`p-3 rounded-2xl cursor-pointer hover:scale-[1.02] transition-all flex items-center gap-3 w-full ${
                   isSidebarExpanded ? 'justify-start text-left pl-4' : 'justify-center text-center'
@@ -1451,7 +1452,7 @@ export default function LoginPage({ onNavigate, initialTab }: LoginPageProps) {
                   setAdminSubTab('jobs');
                   setEditingJob(null);
                   setEditingArticle(null);
-                  window.location.hash = 'admin/jobs';
+                  setRoute('admin/jobs');
                 }}
                 className={`p-3 rounded-2xl cursor-pointer hover:scale-[1.02] transition-all flex items-center gap-3 w-full ${
                   isSidebarExpanded ? 'justify-start text-left pl-4' : 'justify-center text-center'
@@ -1476,7 +1477,7 @@ export default function LoginPage({ onNavigate, initialTab }: LoginPageProps) {
                   setAdminSubTab('articles');
                   setEditingJob(null);
                   setEditingArticle(null);
-                  window.location.hash = 'admin/articles';
+                  setRoute('admin/articles');
                 }}
                 className={`p-3 rounded-2xl cursor-pointer hover:scale-[1.02] transition-all flex items-center gap-3 w-full ${
                   isSidebarExpanded ? 'justify-start text-left pl-4' : 'justify-center text-center'
@@ -1530,7 +1531,7 @@ export default function LoginPage({ onNavigate, initialTab }: LoginPageProps) {
                   setAdminSubTab('settings');
                   setEditingJob(null);
                   setEditingArticle(null);
-                  window.location.hash = 'admin/settings';
+                  setRoute('admin/settings');
                 }}
                 className={`p-3 rounded-2xl cursor-pointer hover:scale-[1.02] transition-all flex items-center gap-3 w-full ${
                   isSidebarExpanded ? 'justify-start text-left pl-4' : 'justify-center text-center'
@@ -1669,7 +1670,7 @@ export default function LoginPage({ onNavigate, initialTab }: LoginPageProps) {
                       void databaseApi.logout();
                       setEmailOrPhone('');
                       setPasswordOrOtp('');
-                      window.location.hash = "login";
+                      setRoute("login");
                     }}
                     className="p-2.5 rounded-full hover:bg-rose-50 text-rose-600 cursor-pointer"
                     title="Logout"
@@ -1735,7 +1736,7 @@ export default function LoginPage({ onNavigate, initialTab }: LoginPageProps) {
                     </div>
                   </div>
                   <button 
-                    onClick={() => { setAdminSubTab('articles'); window.location.hash = 'admin/articles'; }}
+                    onClick={() => { setAdminSubTab('articles'); setRoute('admin/articles'); }}
                     className="px-4 py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-bold rounded-full border border-slate-200/60 shadow-sm cursor-pointer select-none"
                   >
                     View More &rarr;
@@ -1845,7 +1846,7 @@ export default function LoginPage({ onNavigate, initialTab }: LoginPageProps) {
                     </div>
                   </div>
                   <button 
-                    onClick={() => { setAdminSubTab('jobs'); window.location.hash = 'admin/jobs'; }}
+                    onClick={() => { setAdminSubTab('jobs'); setRoute('admin/jobs'); }}
                     className="px-4 py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-bold rounded-full border border-slate-200/60 shadow-sm cursor-pointer select-none"
                   >
                     View More &rarr;
@@ -1948,7 +1949,7 @@ export default function LoginPage({ onNavigate, initialTab }: LoginPageProps) {
     try {
       await databaseApi.login(emailOrPhone, passwordOrOtp);
       setIsLoggedIn(true);
-      window.location.hash = "admin/dashboard";
+      setRoute("admin/dashboard");
     } catch (error) {
       setErrorMsg(error instanceof Error ? error.message : "Invalid admin email or password.");
     } finally {

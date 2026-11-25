@@ -30,6 +30,7 @@ import {
 } from "./Artworks";
 import ScrollDownButton from "./ScrollDownButton";
 import { databaseApi } from "../lib/api";
+import { ROUTE_EVENT, routeHash, setRoute } from "../lib/router";
 
 interface CareersPageProps {
   onNavigate: (page: "home" | "about" | "contact" | "careers" | "articles" | "products" | "services" | "quote", targetId?: string) => void;
@@ -158,17 +159,17 @@ export default function CareersPage({ onNavigate }: CareersPageProps) {
   }, []);
 
   const handleOpenApplyModal = (job: Job) => {
-    window.location.hash = "careers/" + job.id;
+    setRoute("careers/" + job.id);
   };
 
   const handleCloseApplyModal = () => {
-    window.location.hash = "careers";
+    setRoute("careers");
   };
 
   // Sync selectedJob with hash on mount/change to support browser back button
   React.useEffect(() => {
     const checkHash = () => {
-      const hash = window.location.hash;
+      const hash = routeHash();
       const match = hash.match(/careers\/([^?]+)/);
       if (match) {
         const jobId = match[1];
@@ -195,8 +196,8 @@ export default function CareersPage({ onNavigate }: CareersPageProps) {
     };
 
     checkHash();
-    window.addEventListener("hashchange", checkHash);
-    return () => window.removeEventListener("hashchange", checkHash);
+    window.addEventListener(ROUTE_EVENT, checkHash);
+    return () => window.removeEventListener(ROUTE_EVENT, checkHash);
   }, [jobs]);
 
   const handleFormSubmit = async (e: React.FormEvent) => {

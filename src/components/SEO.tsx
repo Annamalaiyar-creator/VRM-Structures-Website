@@ -8,15 +8,18 @@ interface SEOProps {
   ogImage?: string;
   ogType?: string;
   schema?: object | object[];
+  /** Adds robots noindex (used for the 404 page and the admin login). */
+  noindex?: boolean;
 }
 
 export default function SEO({
   title,
   description,
-  canonicalUrl = 'https://vrmstructures.in',
+  canonicalUrl,
   ogImage = 'https://vrmstructures.in/vrm-factory-building.jpg',
   ogType = 'website',
-  schema
+  schema,
+  noindex = false
 }: SEOProps) {
   const siteTitle = `${title} | VRM Structures India Private Limited`;
 
@@ -25,13 +28,14 @@ export default function SEO({
       {/* Standard Metadata */}
       <title>{siteTitle}</title>
       <meta name="description" content={description} />
-      <link rel="canonical" href={canonicalUrl} />
+      <meta name="robots" content={noindex ? 'noindex, follow' : 'index, follow'} />
+      {canonicalUrl && !noindex && <link rel="canonical" href={canonicalUrl} />}
 
       {/* Open Graph / Facebook / WhatsApp */}
       <meta property="og:type" content={ogType} />
       <meta property="og:title" content={siteTitle} />
       <meta property="og:description" content={description} />
-      <meta property="og:url" content={canonicalUrl} />
+      {canonicalUrl && <meta property="og:url" content={canonicalUrl} />}
       <meta property="og:image" content={ogImage} />
       <meta property="og:site_name" content="VRM Structures India Private Limited" />
 

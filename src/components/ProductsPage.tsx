@@ -23,6 +23,7 @@ import {
   HeroImageBackground 
 } from "./Artworks";
 import ScrollDownButton from "./ScrollDownButton";
+import { routeToPath, slugify } from "../lib/router";
 
 const Product3DViewer = React.lazy(() => import("./Product3DViewer"));
 
@@ -453,13 +454,13 @@ export default function ProductsPage({ onNavigate, selectedCategory, setSelected
                     </div>
                     
                     {/* 4. Action button */}
-                    <button 
-                      onClick={() => onNavigate("product-details", prod.title)}
+                    <a href={routeToPath(`products/${slugify(prod.title)}`)} 
+                      onClick={(e) => { e.preventDefault(); onNavigate("product-details", prod.title); }}
                       className="mt-6 w-full bg-slate-950 hover:bg-slate-900 text-white font-bold py-3.5 rounded-2xl text-[12px] transition-colors cursor-pointer flex items-center justify-center gap-2"
                     >
                       View the Product
                       <ArrowRight size={14} />
-                    </button>
+                    </a>
                   </div>
                 </motion.div>
               );

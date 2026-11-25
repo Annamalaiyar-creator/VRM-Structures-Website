@@ -10,6 +10,7 @@ import { HeroVideoBackground, HeroImageBackground } from './Artworks';
 import ScrollDownButton from './ScrollDownButton';
 import { DOWNLOADS_DATA, DownloadItem } from './DatasheetDetailPage';
 import SEO from './SEO';
+import { ROUTE_EVENT, routeHash, routeToUrl } from "../lib/router";
 
 type SectionCategory = 'Inverters' | 'Solar Panels' | 'Brochures';
 
@@ -55,7 +56,7 @@ export default function DownloadsPage({ onNavigateToQuote }: { onNavigateToQuote
 
   useEffect(() => {
     const checkHash = () => {
-      const hash = window.location.hash;
+      const hash = routeHash();
       if (hash.startsWith("#downloads/")) {
         const id = hash.replace("#downloads/", "");
         const item = DOWNLOADS_DATA.find(d => d.id === id);
@@ -84,8 +85,8 @@ export default function DownloadsPage({ onNavigateToQuote }: { onNavigateToQuote
     };
 
     checkHash();
-    window.addEventListener("hashchange", checkHash);
-    return () => window.removeEventListener("hashchange", checkHash);
+    window.addEventListener(ROUTE_EVENT, checkHash);
+    return () => window.removeEventListener(ROUTE_EVENT, checkHash);
   }, []);
 
   // Filter sections and their respective items
@@ -116,7 +117,7 @@ export default function DownloadsPage({ onNavigateToQuote }: { onNavigateToQuote
         <SEO
           title={selectedItem.seoTitle || selectedItem.title}
           description={selectedItem.seoDescription || selectedItem.description}
-          canonicalUrl={`https://vrmstructures.in/#downloads/${selectedItem.id}`}
+          canonicalUrl={routeToUrl(`downloads/${selectedItem.id}`)}
           ogType="article"
           schema={{
             "@context": "https://schema.org",
@@ -139,7 +140,7 @@ export default function DownloadsPage({ onNavigateToQuote }: { onNavigateToQuote
           <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex-1 flex flex-col justify-center relative z-10">
             <main className="py-12 md:py-16 text-left z-10">
               <a
-                href="#downloads"
+                href="/downloads/"
                 className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-indigo-400 hover:text-indigo-300 mb-6 cursor-pointer"
               >
                 <ArrowLeft size={14} /> Back to all downloads
@@ -202,7 +203,7 @@ export default function DownloadsPage({ onNavigateToQuote }: { onNavigateToQuote
                     Explore VRM Structures' hot-dip galvanized and aluminum mounting structures engineered to fit this component.
                   </p>
                 </div>
-                <a href="#products" className="inline-flex items-center gap-2 text-xs font-bold text-indigo-600 hover:text-indigo-800 uppercase tracking-wider shrink-0">
+                <a href="/products/" className="inline-flex items-center gap-2 text-xs font-bold text-indigo-600 hover:text-indigo-800 uppercase tracking-wider shrink-0">
                   View Related VRM Products <ArrowRight size={14} />
                 </a>
               </div>
@@ -342,7 +343,7 @@ export default function DownloadsPage({ onNavigateToQuote }: { onNavigateToQuote
                             </div>
 
                             {/* Title linking to individual datasheet page */}
-                            <a href={`#downloads/${item.id}`} className="block cursor-pointer">
+                            <a href={`/downloads/${item.id}/`} className="block cursor-pointer">
                               <h3 className="font-display text-xl sm:text-2xl font-bold text-slate-950 group-hover:text-indigo-600 transition-colors leading-snug tracking-tight">
                                 {item.title}
                               </h3>
@@ -357,7 +358,7 @@ export default function DownloadsPage({ onNavigateToQuote }: { onNavigateToQuote
                           {/* Download & View Details Buttons */}
                           <div className="pt-6 mt-8 border-t border-slate-200/80 flex items-center justify-between gap-3">
                             <a
-                              href={`#downloads/${item.id}`}
+                              href={`/downloads/${item.id}/`}
                               className="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 uppercase tracking-wider cursor-pointer"
                             >
                               View Spec Page <ArrowRight size={14} />
@@ -386,7 +387,6 @@ export default function DownloadsPage({ onNavigateToQuote }: { onNavigateToQuote
                 type="button"
                 onClick={() => {
                   setSearchQuery('');
-                  setActiveTab('All');
                 }}
                 className="mt-4 px-6 py-3 bg-slate-950 text-white text-xs font-bold rounded-2xl cursor-pointer shadow-md hover:bg-slate-900 transition-all"
               >
