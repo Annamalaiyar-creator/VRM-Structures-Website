@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from "react";
-import { databaseApi } from "./lib/api";
 import { initRouter, getRoute, setRoute, routeToPath, routeToUrl, ROUTE_EVENT } from "./lib/router";
 import { motion, AnimatePresence } from "motion/react";
 import {
@@ -64,26 +63,31 @@ import {
   ClientLogos,
   HeroVideoBackground
 } from "./components/Artworks";
-import AboutPage from "./components/AboutPage";
 // Loaded on demand so three.js is not part of every page's first download.
 import WhenVisible from "./components/WhenVisible";
 const Product3DViewer = React.lazy(() => import("./components/Product3DViewer"));
-import ContactPage from "./components/ContactPage";
-import CareersPage from "./components/CareersPage";
-import ArticlesPage from "./components/ArticlesPage";
-import QuotePage from "./components/QuotePage";
-import ProductsPage from "./components/ProductsPage";
-import ServicesPage from "./components/ServicesPage";
-import ProductDetailsPage from "./components/ProductDetailsPage";
-import DownloadsPage from "./components/DownloadsPage";
-import { DOWNLOADS_DATA } from "./components/DatasheetDetailPage";
 import { LINKEDIN_ARTICLES } from "./data/linkedinArticles";
-import LoginPage from "./components/LoginPage";
 import FloatingSocialButtons from "./components/FloatingSocialButtons";
 import ScrollDownButton from "./components/ScrollDownButton";
 import SEO from "./components/SEO";
-import NotFoundPage from "./components/NotFoundPage";
 import Manufacturing from "./components/Manufacturing";
+import { lazyPage } from "./lib/lazyPage";
+import { whatsappUrl } from "./lib/enquiry";
+
+// Each page's code is a separate download. main.tsx preloads the page in the URL before
+// the first render (see lazyPage); the rest load on first visit or when the browser is idle.
+const AboutPage = lazyPage(() => import("./components/AboutPage"));
+const ContactPage = lazyPage(() => import("./components/ContactPage"));
+const CareersPage = lazyPage(() => import("./components/CareersPage"));
+const ArticlesPage = lazyPage(() => import("./components/ArticlesPage"));
+const QuotePage = lazyPage(() => import("./components/QuotePage"));
+const ProductsPage = lazyPage(() => import("./components/ProductsPage"));
+const ServicesPage = lazyPage(() => import("./components/ServicesPage"));
+const ProductDetailsPage = lazyPage(() => import("./components/ProductDetailsPage"));
+const DownloadsPage = lazyPage(() => import("./components/DownloadsPage"));
+const LoginPage = lazyPage(() => import("./components/LoginPage"));
+const NotFoundPage = lazyPage(() => import("./components/NotFoundPage"));
+const TamilNaduPage = lazyPage(() => import("./components/TamilNaduPage"));
 
 interface TestimonialItem {
   quote: string;
@@ -463,7 +467,7 @@ const HOME_CARD_PRODUCT: Record<string, string> = {
   "FRP Handrail": "FRP Handrails",
 };
 
-type AppPage = "home" | "about" | "contact" | "careers" | "articles" | "downloads" | "login" | "quote" | "products" | "services" | "product-details" | "not-found";
+type AppPage = "home" | "about" | "contact" | "careers" | "articles" | "downloads" | "login" | "quote" | "products" | "services" | "product-details" | "tamil-nadu" | "not-found";
 
 /** Which page (and product, for product pages) a route such as "products/rcc-roof-mms" shows. */
 function pageForRoute(route: string): { page: AppPage; product?: string } {
@@ -472,6 +476,7 @@ function pageForRoute(route: string): { page: AppPage; product?: string } {
     return { page: "product-details", product: decodeURIComponent(route.slice("products/".length).split("?")[0]) };
   }
   if (route === "404") return { page: "not-found" };
+  if (route.split("?")[0] === "solar-structure-manufacturer-tamil-nadu") return { page: "tamil-nadu" };
   if (route.startsWith("articles")) return { page: "articles" };
   if (route.startsWith("careers")) return { page: "careers" };
   if (route.startsWith("downloads")) return { page: "downloads" };
@@ -483,6 +488,25 @@ function pageForRoute(route: string): { page: AppPage; product?: string } {
   const validPages: AppPage[] = ["home", "about", "contact", "careers", "downloads", "login", "quote", "products", "services", "product-details"];
   const page = route.split("?")[0] as AppPage;
   return { page: validPages.includes(page) ? page : "not-found" };
+}
+
+const PAGE_COMPONENTS: Partial<Record<AppPage, { preload: () => Promise<void> }>> = {
+  about: AboutPage, contact: ContactPage, careers: CareersPage, articles: ArticlesPage,
+  quote: QuotePage, products: ProductsPage, services: ServicesPage, "product-details": ProductDetailsPage,
+  downloads: DownloadsPage, login: LoginPage, "not-found": NotFoundPage, "tamil-nadu": TamilNaduPage,
+};
+
+/** Loads the code of the page in the current URL (called by main.tsx before the first render). */
+export function preloadPageForUrl(): Promise<void> {
+  const page = PAGE_COMPONENTS[pageForRoute(getRoute()).page];
+  return page ? page.preload().catch(() => undefined) : Promise.resolve();
+}
+
+/** Fetches the other public pages' code in the background so later navigation is instant. */
+export function prefetchPages() {
+  for (const [name, page] of Object.entries(PAGE_COMPONENTS)) {
+    if (name !== "login") page?.preload().catch(() => undefined);
+  }
 }
 
 export default function App() {
@@ -2778,6 +2802,8 @@ export default function App() {
         <CareersPage
           onNavigate={(page, targetId) => navigateTo(page, targetId)}
         />
+      ) : currentPage === "tamil-nadu" ? (
+        <TamilNaduPage />
       ) : (
         <NotFoundPage
           onNavigate={(page, targetId) => navigateTo(page, targetId)}
@@ -2802,30 +2828,31 @@ export default function App() {
                   </div>
 
                   <p className="font-sans text-sm sm:text-base font-semibold text-slate-800 tracking-tight">
-                    Sign up to receive structure specifications.
+                    Get our structure specifications.
                   </p>
 
-                  {/* Email subscription box with pill outline */}
-                  <div className="relative flex items-center max-w-md w-full bg-slate-50 rounded-full p-1 border border-slate-200/60 shadow-sm focus-within:border-slate-300 transition-all">
-                    <input
-                      id="footer-email-input"
-                      name="email"
-                      type="email"
-                      autoComplete="email"
-                      placeholder="Enter you email"
-                      className="flex-1 bg-transparent px-5 py-3 text-xs sm:text-sm text-slate-800 placeholder:text-slate-400 font-normal focus:outline-none w-full"
-                    />
-                    <button
-                      type="submit"
-                      onClick={() => alert("Thank you for subscribing!")}
+                  {/* The old email sign-up box was not connected to anything; these two actions are. */}
+                  <div className="flex flex-wrap items-center gap-3 max-w-md">
+                    <a
+                      href="/vrm-structures-brochure.pdf"
+                      target="_blank"
+                      rel="noopener noreferrer"
                       className="px-6 py-3 bg-[#0F172A] hover:bg-black text-white text-xs font-bold rounded-full transition-all duration-200 select-none cursor-pointer"
                     >
-                      Submit
-                    </button>
+                      Download Brochure (PDF)
+                    </a>
+                    <a
+                      href={whatsappUrl("Hello VRM Structures, please send me your solar structure specifications and price list.")}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-6 py-3 border border-slate-300 hover:bg-slate-50 text-slate-800 text-xs font-bold rounded-full transition-all duration-200 select-none cursor-pointer"
+                    >
+                      Get Specs on WhatsApp
+                    </a>
                   </div>
 
                   <p className="font-sans text-[11px] text-slate-500 font-normal leading-normal max-w-sm">
-                    By subscribing you agree to with our Privacy Policy and provide consent to receive updates from our company.
+                    Sales: <a href="tel:+919884309789" className="hover:text-indigo-600">+91 98843 09789</a> · <a href="mailto:mms@vrmstructures.in" className="hover:text-indigo-600">mms@vrmstructures.in</a>
                   </p>
                 </div>
 
@@ -2871,6 +2898,7 @@ export default function App() {
                       <li><a href={pageHref("careers")} onClick={(e) => { e.preventDefault(); navigateTo("careers"); }} className="hover:text-indigo-600 transition-colors text-left cursor-pointer">Careers</a></li>
                       <li><a href={pageHref("articles")} onClick={(e) => { e.preventDefault(); navigateTo("articles"); }} className="hover:text-indigo-600 transition-colors text-left cursor-pointer">Blogs</a></li>
                       <li><a href={pageHref("contact")} onClick={(e) => { e.preventDefault(); navigateTo("contact"); }} className="hover:text-indigo-600 transition-colors text-left cursor-pointer">Contact Us</a></li>
+                      <li><a href="/solar-structure-manufacturer-tamil-nadu/" className="hover:text-indigo-600 transition-colors text-left cursor-pointer">Solar Structures in Tamil Nadu</a></li>
                     </ul>
                   </div>
 

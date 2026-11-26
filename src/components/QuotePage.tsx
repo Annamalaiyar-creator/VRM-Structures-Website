@@ -45,7 +45,7 @@ export default function QuotePage({ onNavigate }: QuotePageProps) {
         </div>
       </div>
 
-      {/* STREAMLINED QUOTE CONFIGURATION & OTP VERIFICATION SECTION */}
+      {/* QUOTE CONFIGURATION & WHATSAPP HAND-OFF */}
       <div className="bg-white relative z-10 w-full border-t border-slate-200/50 py-12" id="quote-form-section">
         <QuoteSection />
       </div>

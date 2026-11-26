@@ -315,7 +315,7 @@ export default function QuoteSection({ preselectedProduct }: QuoteSectionProps) 
           <div className="flex items-center gap-4">
             {[
               { id: 1, label: '1. Select & Visualize 3D' },
-              { id: 2, label: '2. Verify & Connect' }
+              { id: 2, label: '2. Your Details' }
             ].map((s, i) => {
               const done = step > s.id;
               const active = step === s.id;
@@ -412,7 +412,7 @@ export default function QuoteSection({ preselectedProduct }: QuoteSectionProps) 
                         onClick={() => setStep(2)}
                         className="w-full sm:w-auto bg-black hover:bg-slate-900 text-white font-sans font-bold text-xs sm:text-sm px-8 py-4 rounded-full tracking-wider uppercase transition-all duration-250 cursor-pointer flex items-center justify-center gap-2 select-none shadow-md"
                       >
-                        Continue to Verification <ArrowRight className="w-4 h-4" />
+                        Continue <ArrowRight className="w-4 h-4" />
                       </button>
                     </motion.div>
                   )}
@@ -460,7 +460,7 @@ export default function QuoteSection({ preselectedProduct }: QuoteSectionProps) 
                   </button>
                 </div>
 
-                {/* Verification Form Card */}
+                {/* Contact details card */}
                 <div className="bg-[#F5F5F7]/85 rounded-[40px] p-6 sm:p-10 border border-slate-100 shadow-[0_32px_64px_rgba(0,0,0,0.02)] text-left">
                   
                   <div className="flex items-center gap-3 mb-8 pb-6 border-b border-slate-200/60">
@@ -468,8 +468,8 @@ export default function QuoteSection({ preselectedProduct }: QuoteSectionProps) 
                       <Lock className="w-5 h-5" />
                     </div>
                     <div>
-                      <h3 className="font-sans text-lg font-bold text-slate-900">Identity Verification</h3>
-                      <p className="font-sans text-xs text-slate-500 font-light">Verify your mobile number to connect directly with our engineering team on WhatsApp.</p>
+                      <h3 className="font-sans text-lg font-bold text-slate-900">Where should we send your quote?</h3>
+                      <p className="font-sans text-xs text-slate-500 font-light">Choose your state and mobile number. Your request opens in WhatsApp, routed to our team for your region.</p>
                     </div>
                   </div>
 

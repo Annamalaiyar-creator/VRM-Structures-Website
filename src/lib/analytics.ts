@@ -42,6 +42,8 @@ export function trackEvent(name: string, params: Record<string, unknown> = {}) {
  */
 export function initAnalytics() {
   if (started || !MEASUREMENT_IDS.length || typeof window === "undefined") return;
+  // Only the live site reports; local builds, previews and tests don't pollute the data.
+  if (!/(^|\.)vrmstructures\.in$/i.test(window.location.hostname)) return;
   started = true;
 
   window.dataLayer = window.dataLayer || [];

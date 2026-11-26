@@ -39,19 +39,21 @@ export default function WhenVisible({
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
 
+  // Never during prerendering: the HTML snapshot can't use a 3D canvas anyway.
+  const prerendering = typeof window !== "undefined" && Boolean((window as Window & { __PRERENDER__?: boolean }).__PRERENDER__);
   const [settled, setSettled] = useState(pageSettled);
   useEffect(() => onPageSettled(() => setSettled(true)), []);
 
   useEffect(() => {
     const el = ref.current;
-    if (!el || visible || !settled) return;
+    if (!el || visible || !settled || prerendering) return;
     if (!("IntersectionObserver" in window)) { setVisible(true); return; }
     const observer = new IntersectionObserver((entries) => {
       if (entries.some((entry) => entry.isIntersecting)) { setVisible(true); observer.disconnect(); }
     }, { rootMargin });
     observer.observe(el);
     return () => observer.disconnect();
-  }, [visible, settled, rootMargin]);
+  }, [visible, settled, rootMargin, prerendering]);
 
   return <div ref={ref} className={className}>{visible ? children : null}</div>;
 }

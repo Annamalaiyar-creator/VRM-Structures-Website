@@ -33,7 +33,9 @@ export const getSharedHeroVideo = (): HTMLVideoElement | null => {
   if (!sharedHeroVideo) {
     const video = document.createElement("video");
     // Web-encoded copy of promo.mp4 (H.264 CRF 27, faststart): 6.7 MB instead of 26 MB.
-    video.src = "/videos/promo-hero.mp4";
+    // Small screens get a 640x360 version (about 1.7 MB instead of 6.7 MB).
+    const smallScreen = window.matchMedia?.("(max-width: 767px)").matches;
+    video.src = smallScreen ? "/videos/promo-hero-mobile.mp4" : "/videos/promo-hero.mp4";
     video.poster = "/videos/promo-poster.jpg";
     video.autoplay = true;
     video.loop = true;
