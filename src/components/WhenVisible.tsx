@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 
 /**
  * Renders its children only once the placeholder comes near the viewport, and not
- * before the page has finished loading (or the visitor interacts), so heavy widgets
+ * before the visitor has interacted with the page (scroll, tap, key), so heavy widgets
  * (3D viewers and the three.js library behind them) don't compete with the page itself.
  */
 let pageSettled = false;
@@ -19,10 +19,9 @@ function onPageSettled(callback: () => void): () => void {
       settledListeners.forEach((fn) => fn());
       settledListeners.clear();
     };
+    // 3D models sit below full-screen heroes, so a visitor scrolls (or taps) before they
+    // can see one: wait for that instead of a timer, keeping three.js out of page load.
     events.forEach((name) => window.addEventListener(name, settle, { once: true, passive: true }));
-    const later = () => setTimeout(settle, 1500);
-    if (document.readyState === "complete") later();
-    else window.addEventListener("load", later, { once: true });
   }
   return () => settledListeners.delete(callback);
 }
