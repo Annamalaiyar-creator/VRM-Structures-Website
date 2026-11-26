@@ -1,9 +1,14 @@
 /**
- * Google Analytics 4. Set VITE_GA_MEASUREMENT_ID (e.g. G-XXXXXXXXXX) in .env before
- * `npm run build` to switch it on; without it nothing is loaded and events are ignored.
+ * Google Analytics 4, sending to one or more GA4 properties at once (e.g. the agency's
+ * and the company's own). gtag.js is loaded once; every page view and event goes to
+ * every ID listed below.
  *
- * Besides page views, every click on a WhatsApp, phone or email link is sent as a
- * `generate_lead` event (mark it as a key event in GA4), so enquiries can be counted.
+ * Add IDs to GA_MEASUREMENT_IDS (they are public, so they live in the code and survive
+ * any rebuild), or pass extra ones at build time as VITE_GA_MEASUREMENT_ID
+ * (comma-separated). With no IDs nothing is loaded and events are ignored.
+ *
+ * Besides page views, every click on a WhatsApp, phone or email link and every enquiry
+ * form hand-off is sent as a `generate_lead` event (mark it as a key event in GA4).
  */
 type Gtag = (...args: unknown[]) => void;
 declare global {
@@ -13,7 +18,16 @@ declare global {
   }
 }
 
-const MEASUREMENT_ID = (import.meta as { env?: Record<string, string | undefined> }).env?.VITE_GA_MEASUREMENT_ID;
+/** GA4 measurement IDs ("G-XXXXXXXXXX"). */
+export const GA_MEASUREMENT_IDS: string[] = [
+  // "G-XXXXXXXXXX", // VRM Structures (company property)
+];
+
+const envIds = ((import.meta as { env?: Record<string, string | undefined> }).env?.VITE_GA_MEASUREMENT_ID || "")
+  .split(",")
+  .map((id) => id.trim())
+  .filter(Boolean);
+const MEASUREMENT_IDS = [...new Set([...GA_MEASUREMENT_IDS, ...envIds])].filter((id) => /^G-[A-Z0-9]+$/i.test(id));
 let started = false;
 
 export function trackEvent(name: string, params: Record<string, unknown> = {}) {
@@ -25,12 +39,12 @@ export function trackPageView(path: string) {
 }
 
 export function initAnalytics() {
-  if (started || !MEASUREMENT_ID || typeof window === "undefined") return;
+  if (started || !MEASUREMENT_IDS.length || typeof window === "undefined") return;
   started = true;
 
   const script = document.createElement("script");
   script.async = true;
-  script.src = `https://www.googletagmanager.com/gtag/js?id=${MEASUREMENT_ID}`;
+  script.src = `https://www.googletagmanager.com/gtag/js?id=${MEASUREMENT_IDS[0]}`;
   document.head.appendChild(script);
 
   window.dataLayer = window.dataLayer || [];
@@ -40,7 +54,7 @@ export function initAnalytics() {
   };
   window.gtag("js", new Date());
   // Page views are sent by trackPageView on every route change (the site is a single-page app).
-  window.gtag("config", MEASUREMENT_ID, { send_page_view: false });
+  for (const id of MEASUREMENT_IDS) window.gtag("config", id, { send_page_view: false });
   trackPageView(window.location.pathname);
 
   // Contact clicks anywhere on the site count as leads.
