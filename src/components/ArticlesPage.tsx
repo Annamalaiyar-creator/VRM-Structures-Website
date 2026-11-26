@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { ARTICLE_PRODUCTS, productPath } from "../data/relatedLinks";
 import { motion, AnimatePresence } from "motion/react";
 import {
   BookOpen,
@@ -65,7 +66,7 @@ const getDefaultArticles = (): Article[] => {
       readTime: "5 Min Read",
       author: "Velmurugan Rathinam",
       authorRole: "Founder & Director Of VRM Structure",
-      authorAvatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=150",
+      authorAvatar: "/founder.jpg",
       image: "https://images.unsplash.com/photo-1509391366360-2e959784a276?auto=format&fit=crop&q=80&w=800",
       colorFrom: "#FF5D63",
       colorTo: "#FF8B91"
@@ -86,7 +87,7 @@ const getDefaultArticles = (): Article[] => {
       readTime: "4 Min Read",
       author: "Velmurugan Rathinam",
       authorRole: "Founder & Director Of VRM Structures",
-      authorAvatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=150",
+      authorAvatar: "/founder.jpg",
       image: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&q=80&w=800",
       colorFrom: "#FF8C42",
       colorTo: "#FFAE7A"
@@ -110,7 +111,7 @@ const getDefaultArticles = (): Article[] => {
       readTime: "6 Min Read",
       author: "Velmurugan Rathinam",
       authorRole: "Founder & Director Of VRM Structures",
-      authorAvatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=150",
+      authorAvatar: "/founder.jpg",
       image: "https://images.unsplash.com/photo-1535813547-99c456a41d4a?auto=format&fit=crop&q=80&w=800",
       colorFrom: "#4D62E8",
       colorTo: "#7B8CFF"
@@ -132,7 +133,7 @@ const getDefaultArticles = (): Article[] => {
       readTime: "4 Min Read",
       author: "HR Division",
       authorRole: "Talent Acquisition Team",
-      authorAvatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=150",
+      authorAvatar: "/favicon.png",
       image: "https://images.unsplash.com/photo-1507537297725-24a1c029d3ca?auto=format&fit=crop&q=80&w=800",
       colorFrom: "#00C9FF",
       colorTo: "#92FE9D"
@@ -153,7 +154,7 @@ const getDefaultArticles = (): Article[] => {
       readTime: "6 Min Read",
       author: "Operations Team",
       authorRole: "Manufacturing Technology Group",
-      authorAvatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=150",
+      authorAvatar: "/favicon.png",
       image: "https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&q=80&w=800",
       colorFrom: "#11998e",
       colorTo: "#38ef7d"
@@ -174,7 +175,7 @@ const getDefaultArticles = (): Article[] => {
       readTime: "5 Min Read",
       author: "Training Academy",
       authorRole: "Safety and Human Development",
-      authorAvatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=150",
+      authorAvatar: "/favicon.png",
       image: "https://images.unsplash.com/photo-1573164713988-8665fc963095?auto=format&fit=crop&q=80&w=800",
       colorFrom: "#8e2de2",
       colorTo: "#4a00e0"
@@ -299,7 +300,9 @@ export default function ArticlesPage({ onNavigate, onContactClick }: ArticlesPag
             description: selectedArticle.excerpt,
             image: selectedArticle.image.startsWith("/") ? `${SITE_ORIGIN}${selectedArticle.image}` : selectedArticle.image,
             ...(selectedArticle.datePublished ? { datePublished: selectedArticle.datePublished } : {}),
-            author: { "@type": "Person", name: selectedArticle.author, jobTitle: selectedArticle.authorRole },
+            author: /team|division|academy/i.test(selectedArticle.author)
+              ? { "@type": "Organization", name: `VRM Structures ${selectedArticle.author}`, url: SITE_ORIGIN }
+              : { "@type": "Person", name: selectedArticle.author, jobTitle: selectedArticle.authorRole },
             publisher: { "@id": "https://vrmstructures.in/#organization" },
             mainEntityOfPage: routeToUrl(`articles/${selectedArticle.id}`),
             ...(selectedArticle.linkedinUrl ? { sameAs: selectedArticle.linkedinUrl } : {}),
@@ -440,6 +443,19 @@ export default function ArticlesPage({ onNavigate, onContactClick }: ArticlesPag
                 </a>
                 . Join the discussion there.
               </p>
+            )}
+
+            {ARTICLE_PRODUCTS[selectedArticle.id] && (
+              <div className="mt-10 bg-white border border-slate-200 rounded-3xl p-6">
+                <h2 className="font-display text-lg font-bold text-slate-900 mb-3">Related products</h2>
+                <ul className="flex flex-wrap gap-3">
+                  {ARTICLE_PRODUCTS[selectedArticle.id].map((title) => (
+                    <li key={title}>
+                      <a href={productPath(title)} className="inline-block px-4 py-2 rounded-full border border-slate-200 text-[13px] text-indigo-700 hover:bg-slate-50">{title}</a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             )}
 
             {/* Bottom Back Button & Share */}

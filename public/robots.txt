@@ -1,6 +1,4 @@
 User-agent: *
 Allow: /
-Allow: /downloads/
-Allow: /*.pdf$
 
 Sitemap: https://vrmstructures.in/sitemap.xml

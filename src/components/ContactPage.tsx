@@ -23,6 +23,7 @@ import {
   HeroImageBackground
 } from "./Artworks";
 import ScrollDownButton from "./ScrollDownButton";
+import { enquiryText, mailtoUrl, sendEnquiryViaWhatsApp, whatsappUrl, SALES_EMAIL } from "../lib/enquiry";
 
 interface ContactPageProps {
   onNavigate: (page: "home" | "about" | "contact" | "careers" | "articles" | "products" | "services" | "quote", targetId?: string) => void;
@@ -41,14 +42,21 @@ export default function ContactPage({ onNavigate }: ContactPageProps) {
   // Quick action validation
   const isFormValid = contactName && contactEmail && contactPhone;
 
+  const enquiryBody = () =>
+    enquiryText("Website enquiry", {
+      Name: contactName,
+      Email: contactEmail,
+      Phone: contactPhone,
+      Requirements: contactMessage,
+    });
+
+  // The enquiry goes to the sales team on WhatsApp (pre-filled; the visitor taps Send),
+  // with email offered on the next screen.
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!isFormValid) return;
-    setContactLoading(true);
-    setTimeout(() => {
-      setContactLoading(false);
-      setContactSubmitted(true);
-    }, 1200);
+    sendEnquiryViaWhatsApp("contact", enquiryBody());
+    setContactSubmitted(true);
   };
 
   return (
@@ -211,7 +219,7 @@ export default function ContactPage({ onNavigate }: ContactPageProps) {
                             required
                             value={contactPhone}
                             onChange={(e) => setContactPhone(e.target.value)}
-                            placeholder="+91 94432 18915"
+                            placeholder="+91 XXXXX XXXXX"
                             className="w-full px-5 py-4 rounded-2xl bg-white border border-slate-100 shadow-sm text-sm font-sans text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100/50 transition-all duration-250"
                           />
                         </div>
@@ -268,10 +276,26 @@ export default function ContactPage({ onNavigate }: ContactPageProps) {
                           </div>
                         </div>
 
-                        <h3 className="font-sans text-2xl font-extrabold text-slate-900 tracking-tight">Inquiry Received!</h3>
+                        <h3 className="font-sans text-2xl font-extrabold text-slate-900 tracking-tight">One last step</h3>
                         <p className="font-sans text-[14px] text-slate-500 mt-3 leading-relaxed max-w-sm font-light">
-                          Thank you, <span className="font-bold text-slate-800">{contactName}</span>. We've received your inquiry. Our structural engineering team will review your specifications and reach out to you at <span className="font-medium text-slate-800">{contactEmail}</span> within 24 hours.
+                          Thank you, <span className="font-bold text-slate-800">{contactName}</span>. Your enquiry has opened in WhatsApp. Press <span className="font-bold text-slate-800">Send</span> there and it goes straight to our sales team. Prefer email? Send the same details to <span className="font-medium text-slate-800">{SALES_EMAIL}</span>.
                         </p>
+                        <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+                          <a
+                            href={whatsappUrl(enquiryBody())}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-6 py-3 bg-[#25D366] text-white rounded-full font-sans text-xs font-bold tracking-wider uppercase"
+                          >
+                            Open WhatsApp again
+                          </a>
+                          <a
+                            href={mailtoUrl(`Website enquiry from ${contactName}`, enquiryBody())}
+                            className="px-6 py-3 border border-slate-300 text-slate-800 rounded-full font-sans text-xs font-bold tracking-wider uppercase"
+                          >
+                            Send by email
+                          </a>
+                        </div>
 
                         <button
                           onClick={() => {

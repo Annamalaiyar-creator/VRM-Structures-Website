@@ -1,0 +1,58 @@
+/**
+ * Internal links between product pages and articles, so each product page is reachable
+ * from several places on the site and readers can move between a topic and the product.
+ * Keys are product titles as used in ProductDetailsPage; article values are article ids.
+ */
+import { routeToPath, slugify } from "../lib/router";
+
+export const ARTICLE_TITLES: Record<string, string> = {
+  "higher-steel-strength-less-deflection": "Higher steel strength does not automatically mean less deflection",
+  "purlin-support-spacing": "Why purlin span matters for solar structures",
+  "wind-loads-location-building-height": "Wind loads: why location and building height matter",
+  "bolts-cleats-anchors-connections": "Why bolts, cleats and anchors matter",
+  "engineering-beyond-kg": "Solar structures need engineering beyond kg",
+  "mms-foundation-solar-success": "The role of module mounting structures in India's solar growth",
+  "surya-ghar-yojana-mms": "Mounting structures for PM Surya Ghar Muft Bijli Yojana",
+  "boost-bifacial-performance-mms": "Boosting bifacial panel performance with the right structure",
+  "aluminum-rail-height-metal-roof": "Why aluminium rail height matters on metal roofs",
+  "optimizing-solar-tilt-angles": "Optimizing solar tilt angles",
+  "p-type-vs-n-type-pv-cells": "P-type vs N-type PV cells",
+};
+
+type Links = { products: string[]; articles: string[] };
+
+export const PRODUCT_LINKS: Record<string, Links> = {
+  "RCC Roof MMS": { products: ["Hot Dip Galvanized Structures", "FRP Walkway", "PM Surya Ghar Kit"], articles: ["wind-loads-location-building-height", "purlin-support-spacing", "bolts-cleats-anchors-connections"] },
+  "Ground Mounted MMS": { products: ["Hot Dip Galvanized Structures", "Customized MMS", "Terrabond Earthing Kit"], articles: ["mms-foundation-solar-success", "optimizing-solar-tilt-angles", "boost-bifacial-performance-mms"] },
+  "Carport MMS": { products: ["Ground Mounted MMS", "Customized MMS", "Hot Dip Galvanized Structures"], articles: ["optimizing-solar-tilt-angles", "wind-loads-location-building-height"] },
+  "Customized MMS": { products: ["Ground Mounted MMS", "Carport MMS", "RCC Roof MMS"], articles: ["engineering-beyond-kg", "higher-steel-strength-less-deflection"] },
+  "Solar Pump MMS": { products: ["Ground Mounted MMS", "Hot Dip Galvanized Structures", "Terrabond Earthing Kit"], articles: ["optimizing-solar-tilt-angles", "mms-foundation-solar-success"] },
+  "Aluminum Module Mounting Structure": { products: ["FRP Walkway", "Terrabond Earthing Kit", "Solar Panels (Tier-1 PV Modules)"], articles: ["aluminum-rail-height-metal-roof", "boost-bifacial-performance-mms"] },
+  "Metal Roof MMS": { products: ["Aluminum Mounting Structure", "FRP Walkway", "Terrabond Earthing Kit"], articles: ["aluminum-rail-height-metal-roof", "purlin-support-spacing"] },
+  "Hot Dip Galvanized Structures": { products: ["RCC Roof MMS", "Ground Mounted MMS", "PM Surya Ghar Kit"], articles: ["higher-steel-strength-less-deflection", "bolts-cleats-anchors-connections", "surya-ghar-yojana-mms"] },
+  "FRP Walkway": { products: ["FRP Handrails", "RCC Roof MMS", "Aluminum Mounting Structure"], articles: ["wind-loads-location-building-height"] },
+  "FRP Handrails": { products: ["FRP Walkway", "RCC Roof MMS", "Hot Dip Galvanized Structures"], articles: ["wind-loads-location-building-height"] },
+  "PM Surya Ghar Kit": { products: ["RCC Roof MMS", "Solar Panels (Tier-1 PV Modules)", "Inverters (Polycab & Deye)"], articles: ["surya-ghar-yojana-mms", "engineering-beyond-kg"] },
+  "Terrabond Earthing Kit": { products: ["PM Surya Ghar Kit", "RCC Roof MMS", "Ground Mounted MMS"], articles: ["mms-foundation-solar-success"] },
+  "Inverters (Polycab & Deye)": { products: ["Solar Panels (Tier-1 PV Modules)", "PM Surya Ghar Kit", "Terrabond Earthing Kit"], articles: ["surya-ghar-yojana-mms"] },
+  "Solar Panels (Tier-1 PV Modules)": { products: ["Inverters (Polycab & Deye)", "PM Surya Ghar Kit", "Ground Mounted MMS"], articles: ["p-type-vs-n-type-pv-cells", "boost-bifacial-performance-mms"] },
+};
+PRODUCT_LINKS["Solar Panels"] = PRODUCT_LINKS["Solar Panels (Tier-1 PV Modules)"];
+
+/** Article id → product pages it relates to (the reverse of PRODUCT_LINKS). */
+export const ARTICLE_PRODUCTS: Record<string, string[]> = {
+  "higher-steel-strength-less-deflection": ["Hot Dip Galvanized Structures", "Customized MMS"],
+  "purlin-support-spacing": ["RCC Roof MMS", "Aluminum Mounting Structure"],
+  "wind-loads-location-building-height": ["RCC Roof MMS", "Carport MMS", "FRP Walkway"],
+  "bolts-cleats-anchors-connections": ["Hot Dip Galvanized Structures", "RCC Roof MMS"],
+  "engineering-beyond-kg": ["Customized MMS", "PM Surya Ghar Kit"],
+  "mms-foundation-solar-success": ["Ground Mounted MMS", "Solar Pump MMS"],
+  "surya-ghar-yojana-mms": ["PM Surya Ghar Kit", "Hot Dip Galvanized Structures", "RCC Roof MMS"],
+  "boost-bifacial-performance-mms": ["Ground Mounted MMS", "Aluminum Mounting Structure"],
+  "aluminum-rail-height-metal-roof": ["Aluminum Mounting Structure", "FRP Walkway"],
+  "optimizing-solar-tilt-angles": ["Ground Mounted MMS", "Carport MMS", "Solar Pump MMS"],
+  "p-type-vs-n-type-pv-cells": ["Solar Panels (Tier-1 PV Modules)", "Inverters (Polycab & Deye)"],
+};
+
+export const productPath = (title: string) => routeToPath(`products/${slugify(title)}`);
+export const articlePath = (id: string) => routeToPath(`articles/${id}`);

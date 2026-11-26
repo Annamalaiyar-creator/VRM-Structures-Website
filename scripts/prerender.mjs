@@ -265,11 +265,12 @@ fs.writeFileSync(
 // Sitemap generated from the pages actually prerendered, so it always matches the
 // canonical URLs (trailing slash) and includes every linked page.
 if (!only) {
+  const buildDate = new Date().toISOString().slice(0, 10);
   const sitemap =
     '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
     results
       .filter((r) => r.canonicalOk)
-      .map((r) => `  <url><loc>${SITE}/${r.route ? `${r.route}/` : ""}</loc></url>`)
+      .map((r) => `  <url><loc>${SITE}/${r.route ? `${r.route}/` : ""}</loc><lastmod>${buildDate}</lastmod></url>`)
       .join("\n") +
     "\n</urlset>\n";
   for (const target of [path.join(distDir, "sitemap.xml"), path.join(projectRoot, "sitemap.xml"), path.join(projectRoot, "public", "sitemap.xml")]) {

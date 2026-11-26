@@ -6,7 +6,7 @@ export const ImagineLogo = ({ invert = false }: { invert?: boolean }) => (
   <div className="flex items-center select-none group cursor-pointer transition-transform duration-300 hover:scale-[1.015]">
     <img
       src="/vrm-logo.png"
-      alt="VRM Structures - A Manufacturing Company"
+      alt="VRM Structures logo"
       className={`h-[44px] sm:h-[46px] w-auto object-contain transition-all duration-300 ${invert ? "brightness-0 invert" : ""}`}
     />
   </div>
@@ -163,6 +163,10 @@ export const HeroImageBackground = ({
         alt={alt}
         className={`w-full h-full object-cover scale-105 transition-opacity duration-500 ${opacity}`}
         loading="eager"
+        fetchPriority="high"
+        decoding="async"
+        width={1376}
+        height={768}
       />
       {/* Dark overlay scrims and center vignette to ensure foreground text is 100% crisp, prominent, and effortlessly readable */}
       <div className="absolute inset-0 bg-slate-950/40 z-10" />

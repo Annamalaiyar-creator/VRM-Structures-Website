@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import { enquiryText, mailtoUrl, SALES_EMAIL } from "../lib/enquiry";
+import { trackEvent } from "../lib/analytics";
 import { motion, AnimatePresence } from "motion/react";
 import {
   Briefcase,
@@ -218,8 +220,22 @@ export default function CareersPage({ onNavigate }: CareersPageProps) {
         submittedAt: new Date().toISOString(),
       });
       setAppliedSubmitted(true);
-    } catch (error) {
-      setApplicationError(error instanceof Error ? error.message : "Unable to submit your application.");
+    } catch {
+      // The online application service is not always available on the host: fall back to
+      // email so the application still reaches the team.
+      const body = enquiryText(`Job application: ${applicantRole || selectedJob?.title || "General"}`, {
+        Name: applicantName,
+        Email: applicantEmail,
+        Phone: applicantPhone,
+        Role: applicantRole,
+        Experience: applicantExperience,
+        Skills: applicantSkills,
+        Portfolio: applicantPortfolio,
+        Message: applicantMessage,
+      });
+      trackEvent("generate_lead", { form_name: "careers", method: "email" });
+      window.location.href = mailtoUrl(`Job application: ${applicantRole || selectedJob?.title || "General"} - ${applicantName}`, body);
+      setApplicationError(`Your application has opened in your email app. Please attach your CV and send it to ${SALES_EMAIL}.`);
     } finally {
       setApplyLoading(false);
     }

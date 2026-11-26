@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { databaseApi } from "./lib/api";
+import { trackPageView } from "./lib/analytics";
 import { initRouter, getRoute, setRoute, routeToPath, routeToUrl, ROUTE_EVENT } from "./lib/router";
 import { motion, AnimatePresence } from "motion/react";
 import {
@@ -65,7 +66,8 @@ import {
   HeroVideoBackground
 } from "./components/Artworks";
 import AboutPage from "./components/AboutPage";
-import Product3DViewer from "./components/Product3DViewer";
+// Loaded on demand so three.js is not part of every page's first download.
+const Product3DViewer = React.lazy(() => import("./components/Product3DViewer"));
 import ContactPage from "./components/ContactPage";
 import CareersPage from "./components/CareersPage";
 import ArticlesPage from "./components/ArticlesPage";
@@ -420,187 +422,46 @@ function FAQAccordionItem({ question, answer, idx, isOpen, onToggle }: {
           </motion.div>
         )}
       </AnimatePresence>
+      {/* Closed answers stay in the HTML (hidden) so search engines can read every answer. */}
+      {!isOpen && <p className="hidden">{answer}</p>}
     </motion.div>
   );
 }
 
-function InquiryForm() {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [org, setOrg] = useState("");
-  const [role, setRole] = useState("EPC Contractor");
-  const [message, setMessage] = useState("");
-  const [submitted, setSubmitted] = useState(false);
-  const [loading, setLoading] = useState(false);
+/** Home page FAQ: shown in the accordion and sent to search engines as FAQPage data. */
+const HOME_FAQ = [
+  {
+    question: "What type of Solar mounting structures do you offer?",
+    answer: "We offer a variety of solar mounting structures, including ground mount systems, rooftop mounts, pole mounts, and non-penetrative roof mounts, designed to meet diverse project needs and site conditions."
+  },
+  {
+    question: "Are your products customisable?",
+    answer: "Yes, we provide customised solar racking solutions tailored to your specific project requirements, ensuring optimal performance and compatibility with your unique architectural design."
+  },
+  {
+    question: "What materials are your mounting system made of?",
+    answer: "Our mounting systems are constructed from high-quality steel and aluminum, ensuring durability, strength, and resistance to harsh weather conditions."
+  },
+  {
+    question: "Do you provide installation support?",
+    answer: "Yes, we offer comprehensive support that includes installation guidelines, technical documentation, and design assistance to ensure your project is successful from start to finish"
+  },
+  {
+    question: "What certifications do your products have?",
+    answer: "Our products adhere to industry standards and regulations, and we provide Material Test Certificates, load data, and compliance documents to assure you of their quality and reliability."
+  },
+  {
+    question: "How do I determine which mounting solution is right for my project?",
+    answer: "Our experienced team is available to assess your project needs, providing recommendations based on factors such as site conditions, energy requirements, and architectural design."
+  }
+];
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name || !email || !message) return;
-    setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      setSubmitted(true);
-    }, 1000);
-  };
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.2, delay: 0.3 }}
-      className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/60 shadow-[0_12px_30px_rgba(0,0,0,0.02)] h-full flex flex-col justify-between"
-    >
-      <AnimatePresence mode="wait">
-        {!submitted ? (
-          <motion.form
-            key="form"
-            onSubmit={handleSubmit}
-            className="flex flex-col gap-5 text-left h-full"
-            initial={{ opacity: 1 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.25 }}
-          >
-            <div>
-              <span className="text-[9px] font-mono tracking-[0.2em] uppercase text-indigo-600 font-bold">Quick Contact</span>
-              <h3 className="font-sans text-lg font-bold text-slate-900 mt-1">Send a Message</h3>
-              <p className="font-sans text-xs text-slate-400 mt-0.5">We respond within 2 business hours.</p>
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label htmlFor="inquiry-name" className="text-[10px] font-mono tracking-wider uppercase text-slate-400 font-bold">Your Name *</label>
-              <input
-                id="inquiry-name"
-                name="name"
-                autoComplete="name"
-                type="text"
-                required
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. Ranganathan"
-                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-sans focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all duration-200 bg-slate-50/50"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="inquiry-email" className="text-[10px] font-mono tracking-wider uppercase text-slate-400 font-bold">Work Email *</label>
-                <input
-                  id="inquiry-email"
-                  name="email"
-                  autoComplete="email"
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="e.g. name@company.com"
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-sans focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all duration-200 bg-slate-50/50"
-                />
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="inquiry-org" className="text-[10px] font-mono tracking-wider uppercase text-slate-400 font-bold">Organization</label>
-                <input
-                  id="inquiry-org"
-                  name="organization"
-                  autoComplete="organization"
-                  type="text"
-                  value={org}
-                  onChange={(e) => setOrg(e.target.value)}
-                  placeholder="e.g. Premier Solar"
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-sans focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all duration-200 bg-slate-50/50"
-                />
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <label className="text-[10px] font-mono tracking-wider uppercase text-slate-400 font-bold">Your Role</label>
-              <div className="grid grid-cols-3 gap-2">
-                {["EPC Contractor", "Solar Developer", "Other"].map((item) => (
-                  <button
-                    key={item}
-                    type="button"
-                    onClick={() => setRole(item)}
-                    className={`py-2 text-[11px] font-sans font-medium rounded-lg text-center transition-all duration-250 border select-none cursor-pointer ${role === item
-                      ? "bg-slate-950 text-white border-slate-950 shadow-sm"
-                      : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
-                      }`}
-                  >
-                    {item}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-1.5 flex-grow">
-              <label htmlFor="inquiry-message" className="text-[10px] font-mono tracking-wider uppercase text-slate-400 font-bold">Message *</label>
-              <textarea
-                id="inquiry-message"
-                name="message"
-                required
-                rows={3}
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                placeholder="Describe your structure requirements or project size..."
-                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-sans focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all duration-200 bg-slate-50/50 resize-none flex-grow"
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full inline-flex p-[1.5px] rounded-xl bg-gradient-to-r from-indigo-500 via-purple-600 to-indigo-500 shadow-[0_4px_12px_rgba(99,102,241,0.15)] group cursor-pointer focus:outline-none select-none"
-            >
-              <div className="w-full inline-flex items-center justify-center bg-[#111] hover:bg-[#1e1e1e] active:scale-[0.99] transition-all duration-200 py-3 rounded-xl">
-                <span className="text-[11px] font-bold tracking-[0.18em] text-white uppercase flex items-center gap-2">
-                  {loading ? "Sending..." : "Submit Inquiry"}
-                  {!loading && <Send size={12} className="text-indigo-300 transition-transform duration-250 group-hover:translate-x-1 group-hover:-translate-y-0.5" />}
-                </span>
-              </div>
-            </button>
-          </motion.form>
-        ) : (
-          <motion.div
-            key="success"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.4, ease: "easeOut" }}
-            className="flex flex-col items-center justify-center text-center py-12 px-4 h-full"
-          >
-            {/* Beautiful glowing success icon with outer rotating gradient ring */}
-            <div className="relative w-16 h-16 rounded-full flex items-center justify-center mb-6">
-              <div className="absolute inset-0 rounded-full p-[2px] bg-gradient-to-r from-indigo-500 via-purple-600 to-indigo-500 animate-spin-slow" style={{ animationDuration: '4s' }} />
-              <div className="absolute inset-[2px] rounded-full bg-white flex items-center justify-center">
-                <Check className="w-8 h-8 text-indigo-600 stroke-[3]" />
-              </div>
-            </div>
-
-            <h3 className="font-sans text-xl font-bold text-slate-900">Inquiry Received!</h3>
-            <p className="font-sans text-[13.5px] text-slate-500 mt-3 leading-relaxed max-w-xs font-light">
-              Thank you, <span className="font-bold text-slate-800">{name}</span>. Our engineering & sales support desk has received your details and will connect with you via email at <span className="font-medium text-slate-800">{email}</span> within 2 hours.
-            </p>
-
-            <motion.button
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
-              onClick={() => {
-                setName("");
-                setEmail("");
-                setOrg("");
-                setMessage("");
-                setRole("EPC Contractor");
-                setSubmitted(false);
-              }}
-              className="mt-8 px-6 py-2.5 bg-slate-950 text-white rounded-xl font-sans text-xs font-bold tracking-wider uppercase hover:bg-slate-800 shadow-sm transition-all cursor-pointer"
-            >
-              Send Another Message
-            </motion.button>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </motion.div>
-  );
-}
+/** Home page product cards → the product page each one links to. */
+const HOME_CARD_PRODUCT: Record<string, string> = {
+  "Aluminum Mounting Structures": "Aluminum Mounting Structure",
+  "Hot Dip Galvanized": "Hot Dip Galvanized Structures",
+  "FRP Handrail": "FRP Handrails",
+};
 
 type AppPage = "home" | "about" | "contact" | "careers" | "articles" | "downloads" | "login" | "quote" | "products" | "services" | "product-details" | "not-found";
 
@@ -717,9 +578,15 @@ export default function App() {
     window.addEventListener("scroll", handleScroll, { passive: true });
     handleScroll();
 
+    let lastTrackedPath = window.location.pathname;
     const handleHashChange = () => {
       const hash = getRoute();
       setCurrentRoute(hash);
+      if (window.location.pathname !== lastTrackedPath) {
+        lastTrackedPath = window.location.pathname;
+        // Let the new page's <title> render before recording the view.
+        setTimeout(() => trackPageView(window.location.pathname), 300);
+      }
       const { page, product } = pageForRoute(hash);
       setCurrentPage(page);
       if (product) setSelectedProductTitle(product);
@@ -826,6 +693,15 @@ export default function App() {
           description={seoData.description}
           canonicalUrl={seoData.canonicalUrl}
           noindex={"noindex" in seoData ? seoData.noindex : false}
+          schema={currentPage === "home" ? {
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            "mainEntity": HOME_FAQ.map((item) => ({
+              "@type": "Question",
+              "name": item.question,
+              "acceptedAnswer": { "@type": "Answer", "text": item.answer },
+            })),
+          } : undefined}
         />
       )}
 
@@ -2041,7 +1917,7 @@ export default function App() {
                         >
                           {prod.glb ? (
                             <div className="absolute inset-0 w-full h-full">
-                              <Product3DViewer url={prod.glb} zoom={prod.zoom} autoRotate={true} isHovered={isHovered} />
+                              <React.Suspense fallback={null}><Product3DViewer url={prod.glb} zoom={prod.zoom} autoRotate={true} isHovered={isHovered} /></React.Suspense>
                             </div>
                           ) : prod.image ? (
                             <img 
@@ -2074,7 +1950,13 @@ export default function App() {
                           <h4 
                             className="font-display text-[15px] lg:text-[16px] font-bold leading-tight text-slate-900"
                           >
-                            {prod.title}
+                            <a
+                              href={pageHref("product-details", HOME_CARD_PRODUCT[prod.title] || prod.title)}
+                              onClick={(e) => { e.preventDefault(); navigateTo("product-details", HOME_CARD_PRODUCT[prod.title] || prod.title); }}
+                              className="hover:text-indigo-600 transition-colors"
+                            >
+                              {prod.title}
+                            </a>
                           </h4>
                           <p className="font-sans text-[12px] leading-relaxed text-slate-500 mt-2 font-light line-clamp-3">
                             {prod.desc}
@@ -2672,32 +2554,7 @@ export default function App() {
 
                     {/* FAQ Accordion List */}
                     <div className="mt-12 max-w-4xl flex flex-col gap-4">
-                      {[
-                        {
-                          question: "What type of Solar mounting structures do you offer?",
-                          answer: "We offer a variety of solar mounting structures, including ground mount systems, rooftop mounts, pole mounts, and non-penetrative roof mounts, designed to meet diverse project needs and site conditions."
-                        },
-                        {
-                          question: "Are your products customisable?",
-                          answer: "Yes, we provide customised solar racking solutions tailored to your specific project requirements, ensuring optimal performance and compatibility with your unique architectural design."
-                        },
-                        {
-                          question: "What materials are your mounting system made of?",
-                          answer: "Our mounting systems are constructed from high-quality steel and aluminum, ensuring durability, strength, and resistance to harsh weather conditions."
-                        },
-                        {
-                          question: "Do you provide installation support?",
-                          answer: "Yes, we offer comprehensive support that includes installation guidelines, technical documentation, and design assistance to ensure your project is successful from start to finish"
-                        },
-                        {
-                          question: "What certifications do your products have?",
-                          answer: "Our products adhere to industry standards and regulations, and we provide Material Test Certificates, load data, and compliance documents to assure you of their quality and reliability."
-                        },
-                        {
-                          question: "How do I determine which mounting solution is right for my project?",
-                          answer: "Our experienced team is available to assess your project needs, providing recommendations based on factors such as site conditions, energy requirements, and architectural design."
-                        }
-                      ].map((item, idx) => (
+                      {HOME_FAQ.map((item, idx) => (
                         <FAQAccordionItem
                           key={idx}
                           question={item.question}
