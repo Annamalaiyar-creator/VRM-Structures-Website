@@ -1,0 +1,58 @@
+import React, { useEffect, useRef, useState } from "react";
+
+/**
+ * Renders its children only once the placeholder comes near the viewport, and not
+ * before the visitor has interacted with the page (scroll, tap, key), so heavy widgets
+ * (3D viewers and the three.js library behind them) don't compete with the page itself.
+ */
+let pageSettled = false;
+const settledListeners = new Set<() => void>();
+function onPageSettled(callback: () => void): () => void {
+  if (pageSettled) { callback(); return () => {}; }
+  settledListeners.add(callback);
+  if (settledListeners.size === 1) {
+    const events = ["pointerdown", "keydown", "scroll", "touchstart"] as const;
+    const settle = () => {
+      if (pageSettled) return;
+      pageSettled = true;
+      events.forEach((name) => window.removeEventListener(name, settle));
+      settledListeners.forEach((fn) => fn());
+      settledListeners.clear();
+    };
+    // 3D models sit below full-screen heroes, so a visitor scrolls (or taps) before they
+    // can see one: wait for that instead of a timer, keeping three.js out of page load.
+    events.forEach((name) => window.addEventListener(name, settle, { once: true, passive: true }));
+  }
+  return () => settledListeners.delete(callback);
+}
+
+export default function WhenVisible({
+  children,
+  className = "w-full h-full",
+  rootMargin = "300px 0px",
+}: {
+  children: React.ReactNode;
+  className?: string;
+  rootMargin?: string;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
+
+  // Never during prerendering: the HTML snapshot can't use a 3D canvas anyway.
+  const prerendering = typeof window !== "undefined" && Boolean((window as Window & { __PRERENDER__?: boolean }).__PRERENDER__);
+  const [settled, setSettled] = useState(pageSettled);
+  useEffect(() => onPageSettled(() => setSettled(true)), []);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || visible || !settled || prerendering) return;
+    if (!("IntersectionObserver" in window)) { setVisible(true); return; }
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) { setVisible(true); observer.disconnect(); }
+    }, { rootMargin });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [visible, settled, rootMargin, prerendering]);
+
+  return <div ref={ref} className={className}>{visible ? children : null}</div>;
+}

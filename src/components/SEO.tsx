@@ -21,7 +21,10 @@ export default function SEO({
   schema,
   noindex = false
 }: SEOProps) {
-  const siteTitle = `${title} | VRM Structures India Private Limited`;
+  // Search results show about 60 characters of a title: append the short brand only when
+  // the page title does not already name it and there is room for it.
+  const brand = " | VRM Structures";
+  const siteTitle = /VRM Structures/i.test(title) || title.length + brand.length > 60 ? title : `${title}${brand}`;
 
   return (
     <Helmet>
@@ -38,6 +41,7 @@ export default function SEO({
       {canonicalUrl && <meta property="og:url" content={canonicalUrl} />}
       <meta property="og:image" content={ogImage} />
       <meta property="og:site_name" content="VRM Structures India Private Limited" />
+      <meta property="og:locale" content="en_IN" />
 
       {/* Twitter Cards */}
       <meta name="twitter:card" content="summary_large_image" />

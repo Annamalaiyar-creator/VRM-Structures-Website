@@ -6,7 +6,7 @@ export const ImagineLogo = ({ invert = false }: { invert?: boolean }) => (
   <div className="flex items-center select-none group cursor-pointer transition-transform duration-300 hover:scale-[1.015]">
     <img
       src="/vrm-logo.png"
-      alt="VRM Structures - A Manufacturing Company"
+      alt="VRM Structures logo"
       className={`h-[44px] sm:h-[46px] w-auto object-contain transition-all duration-300 ${invert ? "brightness-0 invert" : ""}`}
     />
   </div>
@@ -33,7 +33,9 @@ export const getSharedHeroVideo = (): HTMLVideoElement | null => {
   if (!sharedHeroVideo) {
     const video = document.createElement("video");
     // Web-encoded copy of promo.mp4 (H.264 CRF 27, faststart): 6.7 MB instead of 26 MB.
-    video.src = "/videos/promo-hero.mp4";
+    // Small screens get a 640x360 version (about 1.7 MB instead of 6.7 MB).
+    const smallScreen = window.matchMedia?.("(max-width: 767px)").matches;
+    video.src = smallScreen ? "/videos/promo-hero-mobile.mp4" : "/videos/promo-hero.mp4";
     video.poster = "/videos/promo-poster.jpg";
     video.autoplay = true;
     video.loop = true;
@@ -163,6 +165,10 @@ export const HeroImageBackground = ({
         alt={alt}
         className={`w-full h-full object-cover scale-105 transition-opacity duration-500 ${opacity}`}
         loading="eager"
+        fetchPriority="high"
+        decoding="async"
+        width={1376}
+        height={768}
       />
       {/* Dark overlay scrims and center vignette to ensure foreground text is 100% crisp, prominent, and effortlessly readable */}
       <div className="absolute inset-0 bg-slate-950/40 z-10" />

@@ -29,7 +29,7 @@ const distDir = path.join(projectRoot, "dist");
 const SITE = "https://vrmstructures.in";
 
 // Pages that must always be prerendered, even if nothing links to them yet.
-const SEED_ROUTES = ["", "about", "products", "services", "contact", "careers", "articles", "downloads", "quote"];
+const SEED_ROUTES = ["", "about", "products", "services", "contact", "careers", "articles", "downloads", "quote", "solar-structure-manufacturer-tamil-nadu"];
 // Routes that are app-only (admin) or not meant for search engines.
 const EXCLUDED = [/^login/, /^admin/, /^404$/];
 const MAX_PAGES = 300;
@@ -138,6 +138,9 @@ async function renderRoute(route) {
   page.on("console", (message) => {
     if (message.type() === "error") pageErrors.push(message.text().slice(0, 300));
   });
+  // Lets the app skip work that only matters to real visitors (background prefetch of
+  // other pages, 3D viewers), so it isn't recorded in the prerendered HTML.
+  await page.evaluateOnNewDocument(() => { window.__PRERENDER__ = true; });
   await page.setRequestInterception(true);
   page.on("request", (request) => {
     const url = request.url();
@@ -176,6 +179,13 @@ async function renderRoute(route) {
     const head = [...document.head.children];
     const hasPageTitle = head.some((el) => el.tagName === "TITLE" && !original.has(el.outerHTML));
     for (const el of head) {
+      // The page's own code chunks stay preloaded; 3D code must never be baked into the HTML
+      // (the app skips 3D and background prefetch while prerendering, this is a safety net).
+      if (el.tagName === "LINK" && el.getAttribute("rel") === "modulepreload" && !original.has(el.outerHTML) &&
+          /three|3DViewer|draco/i.test(el.getAttribute("href") || "")) {
+        el.remove();
+        continue;
+      }
       if (original.has(el.outerHTML)) {
         if (el.tagName === "TITLE" && hasPageTitle) el.remove();
       } else if (["TITLE", "META", "LINK", "SCRIPT"].includes(el.tagName) && !(el.tagName === "SCRIPT" && el.getAttribute("type") === "module")) {
@@ -265,11 +275,12 @@ fs.writeFileSync(
 // Sitemap generated from the pages actually prerendered, so it always matches the
 // canonical URLs (trailing slash) and includes every linked page.
 if (!only) {
+  const buildDate = new Date().toISOString().slice(0, 10);
   const sitemap =
     '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
     results
       .filter((r) => r.canonicalOk)
-      .map((r) => `  <url><loc>${SITE}/${r.route ? `${r.route}/` : ""}</loc></url>`)
+      .map((r) => `  <url><loc>${SITE}/${r.route ? `${r.route}/` : ""}</loc><lastmod>${buildDate}</lastmod></url>`)
       .join("\n") +
     "\n</urlset>\n";
   for (const target of [path.join(distDir, "sitemap.xml"), path.join(projectRoot, "sitemap.xml"), path.join(projectRoot, "public", "sitemap.xml")]) {

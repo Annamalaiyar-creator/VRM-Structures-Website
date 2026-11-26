@@ -6,8 +6,7 @@ import {
   ShieldAlert, Loader2, Check, ArrowRight,
   RefreshCcw, ArrowLeft, Lock, Sparkles, X
 } from 'lucide-react';
-import { getAuthInstance } from '../lib/firebase';
-import { RecaptchaVerifier, signInWithPhoneNumber, ConfirmationResult } from 'firebase/auth';
+import { enquiryText, sendEnquiryViaWhatsApp } from '../lib/enquiry';
 
 interface QuoteSectionProps {
   preselectedProduct?: string;
@@ -149,14 +148,7 @@ export default function QuoteSection({ preselectedProduct }: QuoteSectionProps) 
   const [sel, setSel]             = useState<string[]>([]);
   const [stateVal, setStateVal]   = useState('');
   const [phone, setPhone]         = useState('');
-  const [otpSent, setOtpSent]     = useState(false);
-  const [otp, setOtp]             = useState('');
-  const [expiresAt, setExpiresAt] = useState(0);
-  const [secsLeft, setSecsLeft]   = useState(0);
-  const [verified, setVerified]   = useState(false);
-  const [confResult, setConfResult] = useState<ConfirmationResult | null>(null);
-  const [requesting, setRequesting] = useState(false);
-  const [mockMode, setMockMode]   = useState(false);
+  const [sent, setSent]           = useState(false);
   const [toasts, setToasts]       = useState<Toast[]>([]);
 
   const toast = (msg: string, type: Toast['type'] = 'info') => {
@@ -173,17 +165,6 @@ export default function QuoteSection({ preselectedProduct }: QuoteSectionProps) 
     else if (preselectedProduct.includes('Carport') || preselectedProduct.includes('Canopy')) setSel(['Car Port Structure']);
     else if (preselectedProduct.includes('Water') || preselectedProduct.includes('Pump')) setSel(['Water Pump Structure']);
   }, [preselectedProduct]);
-
-  useEffect(() => {
-    if (!otpSent || expiresAt <= 0) return;
-    const t = () => {
-      const ms = expiresAt - Date.now();
-      setSecsLeft(ms <= 0 ? 0 : Math.floor(ms / 1000));
-    };
-    t();
-    const iv = setInterval(t, 1000);
-    return () => clearInterval(iv);
-  }, [otpSent, expiresAt]);
 
   const findNode = (path: string[]): HierarchyNode => {
     let n = HIERARCHY;
@@ -217,60 +198,25 @@ export default function QuoteSection({ preselectedProduct }: QuoteSectionProps) 
     setStep(1);
     setStateVal('');
     setPhone('');
-    setOtpSent(false);
-    setOtp('');
-    setVerified(false);
-    setConfResult(null);
-    setMockMode(false);
+    setSent(false);
     toast('Quote configuration restored to default settings.', 'info');
   };
 
-  const sendWA = () => {
-    const owner = STATE_MAP[stateVal] || DEFAULT_NUM;
-    const msg = `New enquiry via VRM Structures:\nStructure: ${sel.join(' → ')}\nState: ${stateVal}\nPhone: +91${phone.replace(/\D/g, '').slice(-10)}`;
-    window.open(`https://wa.me/${owner.replace('+', '')}?text=${encodeURIComponent(msg)}`, '_blank', 'noopener');
-  };
-
-  const sendOtp = async () => {
-    if (!stateVal) { toast('State Selection Required: Please choose your state or territory.', 'error'); return; }
+  // The enquiry opens in WhatsApp, pre-filled for the regional sales number; the buyer taps Send.
+  const sendEnquiry = () => {
+    if (!stateVal) { toast('Please choose your state so we can route your enquiry.', 'error'); return; }
     const clean = phone.replace(/\D/g, '');
-    if (clean.length !== 10) { toast('Invalid Mobile Number: Please enter a valid 10-digit phone number.', 'error'); return; }
-    setRequesting(true);
-    if ((window as any).recaptchaVerifier) {
-      try { (window as any).recaptchaVerifier.clear(); (window as any).recaptchaVerifier = null; } catch (_) {}
-    }
-    try {
-      const auth = await getAuthInstance();
-      const v = new RecaptchaVerifier(auth, 'recaptcha-container', { size: 'invisible' });
-      (window as any).recaptchaVerifier = v;
-      const conf = await signInWithPhoneNumber(auth, `+91${clean}`, v);
-      setConfResult(conf); setOtpSent(true); setVerified(false); setMockMode(false);
-      setExpiresAt(Date.now() + 5 * 60 * 1000); setOtp('');
-      toast('Security Code Dispatched: A 6-digit verification code has been sent via SMS.', 'success');
-    } catch (err: any) {
-      setMockMode(true); setOtpSent(true); setVerified(false); setExpiresAt(Date.now() + 5 * 60 * 1000); setOtp('');
-      toast('Demonstration Mode Active: Enter verification code 123456 to test connection.', 'info');
-      if ((window as any).recaptchaVerifier) {
-        try { (window as any).recaptchaVerifier.clear(); (window as any).recaptchaVerifier = null; } catch (_) {}
-      }
-    } finally { setRequesting(false); }
+    if (clean.length !== 10) { toast('Please enter a valid 10-digit mobile number.', 'error'); return; }
+    const owner = (STATE_MAP[stateVal] || DEFAULT_NUM).replace('+', '');
+    const text = enquiryText('Quote request', {
+      Structure: sel.join(' → '),
+      State: stateVal,
+      Phone: `+91${clean}`,
+    });
+    sendEnquiryViaWhatsApp('quote', text, owner);
+    setSent(true);
+    toast('Your quote request has opened in WhatsApp. Press Send to reach our team.', 'success');
   };
-
-  const verifyOtp = async () => {
-    if (otp.length !== 6) { toast('Incomplete Security Code: Please enter the 6-digit verification code.', 'error'); return; }
-    if (Date.now() > expiresAt) { toast('Verification Code Expired: Please request a new security code.', 'error'); return; }
-    if (mockMode) {
-      if (otp === '123456') { setVerified(true); toast('Identity Verified: Connecting to VRM technical engineering desk...', 'success'); sendWA(); }
-      else toast('Incorrect Security Code: Please enter valid verification code (Demo: 123456).', 'error');
-      return;
-    }
-    if (!confResult) { toast('Session Expired: Please request a new security code.', 'error'); return; }
-    try {
-      await confResult.confirm(otp); setVerified(true); toast('Identity Verified: Connecting to VRM technical engineering desk...', 'success'); sendWA();
-    } catch (e: any) { toast(e.message || 'Verification Error: Unable to complete authentication.', 'error'); }
-  };
-
-  const fmtTime = (s: number) => s <= 0 ? 'Expired' : `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
 
   const subDropdowns: React.ReactNode[] = [];
   let cur = HIERARCHY;
@@ -369,7 +315,7 @@ export default function QuoteSection({ preselectedProduct }: QuoteSectionProps) 
           <div className="flex items-center gap-4">
             {[
               { id: 1, label: '1. Select & Visualize 3D' },
-              { id: 2, label: '2. Verify & Connect' }
+              { id: 2, label: '2. Your Details' }
             ].map((s, i) => {
               const done = step > s.id;
               const active = step === s.id;
@@ -466,7 +412,7 @@ export default function QuoteSection({ preselectedProduct }: QuoteSectionProps) 
                         onClick={() => setStep(2)}
                         className="w-full sm:w-auto bg-black hover:bg-slate-900 text-white font-sans font-bold text-xs sm:text-sm px-8 py-4 rounded-full tracking-wider uppercase transition-all duration-250 cursor-pointer flex items-center justify-center gap-2 select-none shadow-md"
                       >
-                        Continue to Verification <ArrowRight className="w-4 h-4" />
+                        Continue <ArrowRight className="w-4 h-4" />
                       </button>
                     </motion.div>
                   )}
@@ -514,7 +460,7 @@ export default function QuoteSection({ preselectedProduct }: QuoteSectionProps) 
                   </button>
                 </div>
 
-                {/* Verification Form Card */}
+                {/* Contact details card */}
                 <div className="bg-[#F5F5F7]/85 rounded-[40px] p-6 sm:p-10 border border-slate-100 shadow-[0_32px_64px_rgba(0,0,0,0.02)] text-left">
                   
                   <div className="flex items-center gap-3 mb-8 pb-6 border-b border-slate-200/60">
@@ -522,8 +468,8 @@ export default function QuoteSection({ preselectedProduct }: QuoteSectionProps) 
                       <Lock className="w-5 h-5" />
                     </div>
                     <div>
-                      <h3 className="font-sans text-lg font-bold text-slate-900">Identity Verification</h3>
-                      <p className="font-sans text-xs text-slate-500 font-light">Verify your mobile number to connect directly with our engineering team on WhatsApp.</p>
+                      <h3 className="font-sans text-lg font-bold text-slate-900">Where should we send your quote?</h3>
+                      <p className="font-sans text-xs text-slate-500 font-light">Choose your state and mobile number. Your request opens in WhatsApp, routed to our team for your region.</p>
                     </div>
                   </div>
 
@@ -572,67 +518,19 @@ export default function QuoteSection({ preselectedProduct }: QuoteSectionProps) 
                       </div>
                     </div>
 
-                    <div id="recaptcha-container" />
-
-                    {!otpSent ? (
-                      <div className="pt-2">
-                        <button
-                          onClick={sendOtp}
-                          disabled={requesting}
-                          className="w-full bg-black hover:bg-slate-900 text-white font-sans font-bold text-xs sm:text-sm px-8 py-4 rounded-full tracking-wider uppercase transition-all duration-250 cursor-pointer flex items-center justify-center gap-2 select-none disabled:opacity-50"
-                        >
-                          {requesting ? <><Loader2 className="w-4 h-4 animate-spin" /> Sending Verification Code...</> : <><Phone className="w-4 h-4" /> Send Verification Code via SMS</>}
-                        </button>
-                      </div>
-                    ) : (
-                      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6 pt-2">
-                        {mockMode && (
-                          <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-2xl">
-                            <ShieldAlert className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                            <p className="text-xs text-amber-800 leading-relaxed font-light">
-                              <strong className="font-bold">Demo Verification Active:</strong> Enter code <span className="font-mono font-bold bg-amber-100 px-2 py-0.5 rounded text-amber-900">123456</span> to complete submission.
-                            </p>
-                          </div>
-                        )}
-
-                        <div className="flex flex-col gap-2">
-                          <div className="flex justify-between items-center px-1">
-                            <label htmlFor="quote-otp" className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">
-                              6-Digit Verification Code
-                            </label>
-                            <span className={`text-xs font-mono font-bold ${secsLeft > 0 ? 'text-indigo-600' : 'text-rose-500'}`}>{fmtTime(secsLeft)}</span>
-                          </div>
-                          <input
-                            id="quote-otp"
-                            name="otp"
-                            autoComplete="one-time-code"
-                            type="tel"
-                            maxLength={6}
-                            value={otp}
-                            placeholder="123456"
-                            onChange={e => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                            className="w-full py-4 bg-white border-2 border-slate-200 rounded-2xl text-2xl font-mono tracking-[0.5em] font-bold text-center text-slate-900 focus:outline-none focus:border-indigo-500 transition-all"
-                          />
-                        </div>
-
-                        <div className="flex flex-col sm:flex-row gap-3">
-                          <button
-                            onClick={verifyOtp}
-                            disabled={verified || otp.length !== 6 || secsLeft <= 0 || requesting}
-                            className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-sans font-bold text-xs sm:text-sm px-8 py-4 rounded-full tracking-wider uppercase transition-all duration-250 cursor-pointer flex items-center justify-center gap-2 select-none disabled:opacity-40"
-                          >
-                            <MessageSquare className="w-4 h-4" /> Verify & Connect on WhatsApp
-                          </button>
-                          <button
-                            onClick={sendOtp}
-                            disabled={requesting}
-                            className="px-6 py-4 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-full transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
-                          >
-                            {requesting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <><RefreshCcw className="w-3.5 h-3.5" /> Resend</>}
-                          </button>
-                        </div>
-                      </motion.div>
-                    )}
+                    <div className="pt-2 space-y-3">
+                      <button
+                        onClick={sendEnquiry}
+                        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-sans font-bold text-xs sm:text-sm px-8 py-4 rounded-full tracking-wider uppercase transition-all duration-250 cursor-pointer flex items-center justify-center gap-2 select-none"
+                      >
+                        <MessageSquare className="w-4 h-4" /> {sent ? 'Open WhatsApp Again' : 'Send Quote Request on WhatsApp'}
+                      </button>
+                      {sent && (
+                        <p className="text-xs text-slate-500 text-center leading-relaxed">
+                          Your request has opened in WhatsApp. Press <strong>Send</strong> there and our team will reply with drawings and pricing.
+                        </p>
+                      )}
+                    </div>
                   </div>
 
                 </div>

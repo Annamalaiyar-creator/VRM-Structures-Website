@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from "react";
-import { databaseApi } from "./lib/api";
 import { initRouter, getRoute, setRoute, routeToPath, routeToUrl, ROUTE_EVENT } from "./lib/router";
 import { motion, AnimatePresence } from "motion/react";
 import {
@@ -64,24 +63,31 @@ import {
   ClientLogos,
   HeroVideoBackground
 } from "./components/Artworks";
-import AboutPage from "./components/AboutPage";
-import Product3DViewer from "./components/Product3DViewer";
-import ContactPage from "./components/ContactPage";
-import CareersPage from "./components/CareersPage";
-import ArticlesPage from "./components/ArticlesPage";
-import QuotePage from "./components/QuotePage";
-import ProductsPage from "./components/ProductsPage";
-import ServicesPage from "./components/ServicesPage";
-import ProductDetailsPage from "./components/ProductDetailsPage";
-import DownloadsPage from "./components/DownloadsPage";
-import { DOWNLOADS_DATA } from "./components/DatasheetDetailPage";
+// Loaded on demand so three.js is not part of every page's first download.
+import WhenVisible from "./components/WhenVisible";
+const Product3DViewer = React.lazy(() => import("./components/Product3DViewer"));
 import { LINKEDIN_ARTICLES } from "./data/linkedinArticles";
-import LoginPage from "./components/LoginPage";
 import FloatingSocialButtons from "./components/FloatingSocialButtons";
 import ScrollDownButton from "./components/ScrollDownButton";
 import SEO from "./components/SEO";
-import NotFoundPage from "./components/NotFoundPage";
 import Manufacturing from "./components/Manufacturing";
+import { lazyPage } from "./lib/lazyPage";
+import { whatsappUrl } from "./lib/enquiry";
+
+// Each page's code is a separate download. main.tsx preloads the page in the URL before
+// the first render (see lazyPage); the rest load on first visit or when the browser is idle.
+const AboutPage = lazyPage(() => import("./components/AboutPage"));
+const ContactPage = lazyPage(() => import("./components/ContactPage"));
+const CareersPage = lazyPage(() => import("./components/CareersPage"));
+const ArticlesPage = lazyPage(() => import("./components/ArticlesPage"));
+const QuotePage = lazyPage(() => import("./components/QuotePage"));
+const ProductsPage = lazyPage(() => import("./components/ProductsPage"));
+const ServicesPage = lazyPage(() => import("./components/ServicesPage"));
+const ProductDetailsPage = lazyPage(() => import("./components/ProductDetailsPage"));
+const DownloadsPage = lazyPage(() => import("./components/DownloadsPage"));
+const LoginPage = lazyPage(() => import("./components/LoginPage"));
+const NotFoundPage = lazyPage(() => import("./components/NotFoundPage"));
+const TamilNaduPage = lazyPage(() => import("./components/TamilNaduPage"));
 
 interface TestimonialItem {
   quote: string;
@@ -420,186 +426,87 @@ function FAQAccordionItem({ question, answer, idx, isOpen, onToggle }: {
           </motion.div>
         )}
       </AnimatePresence>
+      {/* Closed answers stay in the HTML (hidden) so search engines can read every answer. */}
+      {!isOpen && <p className="hidden">{answer}</p>}
     </motion.div>
   );
 }
 
-function InquiryForm() {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [org, setOrg] = useState("");
-  const [role, setRole] = useState("EPC Contractor");
-  const [message, setMessage] = useState("");
-  const [submitted, setSubmitted] = useState(false);
-  const [loading, setLoading] = useState(false);
+/** Home page FAQ: shown in the accordion and sent to search engines as FAQPage data. */
+const HOME_FAQ = [
+  {
+    question: "What type of Solar mounting structures do you offer?",
+    answer: "We offer a variety of solar mounting structures, including ground mount systems, rooftop mounts, pole mounts, and non-penetrative roof mounts, designed to meet diverse project needs and site conditions."
+  },
+  {
+    question: "Are your products customisable?",
+    answer: "Yes, we provide customised solar racking solutions tailored to your specific project requirements, ensuring optimal performance and compatibility with your unique architectural design."
+  },
+  {
+    question: "What materials are your mounting system made of?",
+    answer: "Our mounting systems are constructed from high-quality steel and aluminum, ensuring durability, strength, and resistance to harsh weather conditions."
+  },
+  {
+    question: "Do you provide installation support?",
+    answer: "Yes, we offer comprehensive support that includes installation guidelines, technical documentation, and design assistance to ensure your project is successful from start to finish"
+  },
+  {
+    question: "What certifications do your products have?",
+    answer: "Our products adhere to industry standards and regulations, and we provide Material Test Certificates, load data, and compliance documents to assure you of their quality and reliability."
+  },
+  {
+    question: "How do I determine which mounting solution is right for my project?",
+    answer: "Our experienced team is available to assess your project needs, providing recommendations based on factors such as site conditions, energy requirements, and architectural design."
+  }
+];
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name || !email || !message) return;
-    setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      setSubmitted(true);
-    }, 1000);
-  };
+/** Home page product cards → the product page each one links to. */
+const HOME_CARD_PRODUCT: Record<string, string> = {
+  "Aluminum Mounting Structures": "Aluminum Mounting Structure",
+  "Hot Dip Galvanized": "Hot Dip Galvanized Structures",
+  "FRP Handrail": "FRP Handrails",
+};
 
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.2, delay: 0.3 }}
-      className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/60 shadow-[0_12px_30px_rgba(0,0,0,0.02)] h-full flex flex-col justify-between"
-    >
-      <AnimatePresence mode="wait">
-        {!submitted ? (
-          <motion.form
-            key="form"
-            onSubmit={handleSubmit}
-            className="flex flex-col gap-5 text-left h-full"
-            initial={{ opacity: 1 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.25 }}
-          >
-            <div>
-              <span className="text-[9px] font-mono tracking-[0.2em] uppercase text-indigo-600 font-bold">Quick Contact</span>
-              <h3 className="font-sans text-lg font-bold text-slate-900 mt-1">Send a Message</h3>
-              <p className="font-sans text-xs text-slate-400 mt-0.5">We respond within 2 business hours.</p>
-            </div>
+type AppPage = "home" | "about" | "contact" | "careers" | "articles" | "downloads" | "login" | "quote" | "products" | "services" | "product-details" | "tamil-nadu" | "not-found";
 
-            <div className="flex flex-col gap-1.5">
-              <label htmlFor="inquiry-name" className="text-[10px] font-mono tracking-wider uppercase text-slate-400 font-bold">Your Name *</label>
-              <input
-                id="inquiry-name"
-                name="name"
-                autoComplete="name"
-                type="text"
-                required
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. Ranganathan"
-                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-sans focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all duration-200 bg-slate-50/50"
-              />
-            </div>
+/** Which page (and product, for product pages) a route such as "products/rcc-roof-mms" shows. */
+function pageForRoute(route: string): { page: AppPage; product?: string } {
+  if (!route) return { page: "home" };
+  if (route.startsWith("products/")) {
+    return { page: "product-details", product: decodeURIComponent(route.slice("products/".length).split("?")[0]) };
+  }
+  if (route === "404") return { page: "not-found" };
+  if (route.split("?")[0] === "solar-structure-manufacturer-tamil-nadu") return { page: "tamil-nadu" };
+  if (route.startsWith("articles")) return { page: "articles" };
+  if (route.startsWith("careers")) return { page: "careers" };
+  if (route.startsWith("downloads")) return { page: "downloads" };
+  if (route.startsWith("product-details")) {
+    const title = route.replace("product-details/", "");
+    return { page: "product-details", product: title && title !== "product-details" ? decodeURIComponent(title) : undefined };
+  }
+  if (route.startsWith("login") || route.startsWith("admin")) return { page: "login" };
+  const validPages: AppPage[] = ["home", "about", "contact", "careers", "downloads", "login", "quote", "products", "services", "product-details"];
+  const page = route.split("?")[0] as AppPage;
+  return { page: validPages.includes(page) ? page : "not-found" };
+}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="inquiry-email" className="text-[10px] font-mono tracking-wider uppercase text-slate-400 font-bold">Work Email *</label>
-                <input
-                  id="inquiry-email"
-                  name="email"
-                  autoComplete="email"
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="e.g. name@company.com"
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-sans focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all duration-200 bg-slate-50/50"
-                />
-              </div>
+const PAGE_COMPONENTS: Partial<Record<AppPage, { preload: () => Promise<void> }>> = {
+  about: AboutPage, contact: ContactPage, careers: CareersPage, articles: ArticlesPage,
+  quote: QuotePage, products: ProductsPage, services: ServicesPage, "product-details": ProductDetailsPage,
+  downloads: DownloadsPage, login: LoginPage, "not-found": NotFoundPage, "tamil-nadu": TamilNaduPage,
+};
 
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="inquiry-org" className="text-[10px] font-mono tracking-wider uppercase text-slate-400 font-bold">Organization</label>
-                <input
-                  id="inquiry-org"
-                  name="organization"
-                  autoComplete="organization"
-                  type="text"
-                  value={org}
-                  onChange={(e) => setOrg(e.target.value)}
-                  placeholder="e.g. Premier Solar"
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-sans focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all duration-200 bg-slate-50/50"
-                />
-              </div>
-            </div>
+/** Loads the code of the page in the current URL (called by main.tsx before the first render). */
+export function preloadPageForUrl(): Promise<void> {
+  const page = PAGE_COMPONENTS[pageForRoute(getRoute()).page];
+  return page ? page.preload().catch(() => undefined) : Promise.resolve();
+}
 
-            <div className="flex flex-col gap-2">
-              <label className="text-[10px] font-mono tracking-wider uppercase text-slate-400 font-bold">Your Role</label>
-              <div className="grid grid-cols-3 gap-2">
-                {["EPC Contractor", "Solar Developer", "Other"].map((item) => (
-                  <button
-                    key={item}
-                    type="button"
-                    onClick={() => setRole(item)}
-                    className={`py-2 text-[11px] font-sans font-medium rounded-lg text-center transition-all duration-250 border select-none cursor-pointer ${role === item
-                      ? "bg-slate-950 text-white border-slate-950 shadow-sm"
-                      : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
-                      }`}
-                  >
-                    {item}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-1.5 flex-grow">
-              <label htmlFor="inquiry-message" className="text-[10px] font-mono tracking-wider uppercase text-slate-400 font-bold">Message *</label>
-              <textarea
-                id="inquiry-message"
-                name="message"
-                required
-                rows={3}
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                placeholder="Describe your structure requirements or project size..."
-                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-sans focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all duration-200 bg-slate-50/50 resize-none flex-grow"
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full inline-flex p-[1.5px] rounded-xl bg-gradient-to-r from-indigo-500 via-purple-600 to-indigo-500 shadow-[0_4px_12px_rgba(99,102,241,0.15)] group cursor-pointer focus:outline-none select-none"
-            >
-              <div className="w-full inline-flex items-center justify-center bg-[#111] hover:bg-[#1e1e1e] active:scale-[0.99] transition-all duration-200 py-3 rounded-xl">
-                <span className="text-[11px] font-bold tracking-[0.18em] text-white uppercase flex items-center gap-2">
-                  {loading ? "Sending..." : "Submit Inquiry"}
-                  {!loading && <Send size={12} className="text-indigo-300 transition-transform duration-250 group-hover:translate-x-1 group-hover:-translate-y-0.5" />}
-                </span>
-              </div>
-            </button>
-          </motion.form>
-        ) : (
-          <motion.div
-            key="success"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.4, ease: "easeOut" }}
-            className="flex flex-col items-center justify-center text-center py-12 px-4 h-full"
-          >
-            {/* Beautiful glowing success icon with outer rotating gradient ring */}
-            <div className="relative w-16 h-16 rounded-full flex items-center justify-center mb-6">
-              <div className="absolute inset-0 rounded-full p-[2px] bg-gradient-to-r from-indigo-500 via-purple-600 to-indigo-500 animate-spin-slow" style={{ animationDuration: '4s' }} />
-              <div className="absolute inset-[2px] rounded-full bg-white flex items-center justify-center">
-                <Check className="w-8 h-8 text-indigo-600 stroke-[3]" />
-              </div>
-            </div>
-
-            <h3 className="font-sans text-xl font-bold text-slate-900">Inquiry Received!</h3>
-            <p className="font-sans text-[13.5px] text-slate-500 mt-3 leading-relaxed max-w-xs font-light">
-              Thank you, <span className="font-bold text-slate-800">{name}</span>. Our engineering & sales support desk has received your details and will connect with you via email at <span className="font-medium text-slate-800">{email}</span> within 2 hours.
-            </p>
-
-            <motion.button
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
-              onClick={() => {
-                setName("");
-                setEmail("");
-                setOrg("");
-                setMessage("");
-                setRole("EPC Contractor");
-                setSubmitted(false);
-              }}
-              className="mt-8 px-6 py-2.5 bg-slate-950 text-white rounded-xl font-sans text-xs font-bold tracking-wider uppercase hover:bg-slate-800 shadow-sm transition-all cursor-pointer"
-            >
-              Send Another Message
-            </motion.button>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </motion.div>
-  );
+/** Fetches the other public pages' code in the background so later navigation is instant. */
+export function prefetchPages() {
+  for (const [name, page] of Object.entries(PAGE_COMPONENTS)) {
+    if (name !== "login") page?.preload().catch(() => undefined);
+  }
 }
 
 export default function App() {
@@ -610,10 +517,12 @@ export default function App() {
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
   const [isHeroMuted, setIsHeroMuted] = useState(true);
   const heroVideoRef = useRef<HTMLVideoElement>(null);
-  const [currentPage, setCurrentPage] = useState<"home" | "about" | "contact" | "careers" | "articles" | "downloads" | "login" | "quote" | "products" | "services" | "product-details" | "not-found">("home");
+  // Start on the page in the URL, not on "home": rendering home first (even for one frame) would
+  // replace the prerendered page and start the home page's hero videos downloading on every page.
+  const [currentPage, setCurrentPage] = useState<AppPage>(() => pageForRoute(getRoute()).page);
   // Full current route (e.g. "downloads/<id>"); re-renders the page-level SEO tags on every URL change.
   const [currentRoute, setCurrentRoute] = useState<string>(() => getRoute());
-  const [selectedProductTitle, setSelectedProductTitle] = useState("Metal Roof MMS");
+  const [selectedProductTitle, setSelectedProductTitle] = useState(() => pageForRoute(getRoute()).product || "Metal Roof MMS");
   const [productsDropdownOpen, setProductsDropdownOpen] = useState(false);
   const [mountingDropdownOpen, setMountingDropdownOpen] = useState(false);
   const [aluminumDropdownOpen, setAluminumDropdownOpen] = useState(false);
@@ -634,45 +543,6 @@ export default function App() {
   const [selectedThickness, setSelectedThickness] = useState<string>("All Thicknesses");
   const [activeDropdown, setActiveDropdown] = useState<"category" | "material" | "thickness" | null>(null);
 
-  const updateDocumentTitle = (page: string, hash: string) => {
-    const titles: Record<string, string> = {
-      home: "VRM Structures India Private Limited | Solar Mounting Structure (MMS) Manufacturer",
-      about: "About Us | VRM Structures - Leading Solar PV MMS Manufacturer",
-      contact: "Contact Us | VRM Structures India Private Limited",
-      careers: "Careers & Openings | VRM Structures India Private Limited",
-      articles: "Solar Insights & Articles | VRM Structures",
-      downloads: "Product Brochures & Catalog Downloads | VRM Structures",
-      login: "Admin Portal | VRM Structures",
-      quote: "Get a Custom Quote | VRM Structures India Private Limited",
-      products: "Solar Mounting Products & Solutions | VRM Structures",
-      services: "EPC, Design, Testing & Galvanizing Services | VRM Structures",
-      "product-details": "Product Specifications & Details | VRM Structures",
-    };
-
-    let title = titles[page] || "VRM Structures India Private Limited";
-
-    if (page === "downloads" && hash.startsWith("downloads/")) {
-      const id = hash.replace("downloads/", "");
-      const item = DOWNLOADS_DATA.find(d => d.id === id);
-      if (item) {
-        title = item.seoTitle || `${item.title} | VRM Structures`;
-      }
-    } else if (page === "articles" && hash.startsWith("articles/")) {
-      const id = hash.replace("articles/", "");
-      void databaseApi.articles().then((list) => {
-        const article = list.find((item) => item.id === id);
-        if (article) document.title = `${article.title} | VRM Structures`;
-      }).catch(() => undefined);
-    } else if (page === "product-details" && hash.startsWith("product-details/")) {
-      const pTitle = hash.replace("product-details/", "");
-      if (pTitle) {
-        title = `${decodeURIComponent(pTitle)} Specifications & Details | VRM Structures`;
-      }
-    }
-
-    document.title = title;
-  };
-
   type PageName = "home" | "about" | "contact" | "careers" | "articles" | "downloads" | "login" | "quote" | "products" | "services" | "product-details" | "not-found";
 
   const routeFor = (page: PageName, targetId?: string) =>
@@ -691,7 +561,6 @@ export default function App() {
     const targetHash = routeFor(page, targetId);
     setRoute(targetHash);
     setCurrentPage(page);
-    updateDocumentTitle(page, targetHash);
     if (page === "product-details" && targetId) {
       setSelectedProductTitle(targetId);
     }
@@ -736,69 +605,9 @@ export default function App() {
     const handleHashChange = () => {
       const hash = getRoute();
       setCurrentRoute(hash);
-      if (!hash) {
-        setCurrentPage("home");
-        updateDocumentTitle("home", "");
-        return;
-      }
-
-      if (hash.startsWith("products/")) {
-        const slug = hash.slice("products/".length).split("?")[0];
-        setCurrentPage("product-details");
-        setSelectedProductTitle(decodeURIComponent(slug));
-        updateDocumentTitle("product-details", hash);
-        return;
-      }
-
-      if (hash === "404") {
-        setCurrentPage("not-found");
-        updateDocumentTitle("not-found", hash);
-        return;
-      }
-
-      if (hash.startsWith("articles")) {
-        setCurrentPage("articles");
-        updateDocumentTitle("articles", hash);
-        return;
-      }
-
-      if (hash.startsWith("careers")) {
-        setCurrentPage("careers");
-        updateDocumentTitle("careers", hash);
-        return;
-      }
-
-      if (hash.startsWith("downloads")) {
-        setCurrentPage("downloads");
-        updateDocumentTitle("downloads", hash);
-        return;
-      }
-
-      if (hash.startsWith("product-details")) {
-        setCurrentPage("product-details");
-        const title = hash.replace("product-details/", "");
-        if (title && title !== "product-details") {
-          setSelectedProductTitle(decodeURIComponent(title));
-        }
-        updateDocumentTitle("product-details", hash);
-        return;
-      }
-
-      if (hash.startsWith("login") || hash.startsWith("admin")) {
-        setCurrentPage("login");
-        updateDocumentTitle("login", hash);
-        return;
-      }
-
-      const validPages = ["home", "about", "contact", "careers", "downloads", "login", "quote", "products", "services", "product-details"];
-      const page = hash.split("?")[0];
-      if (validPages.includes(page)) {
-        setCurrentPage(page as any);
-        updateDocumentTitle(page, hash);
-      } else {
-        setCurrentPage("not-found");
-        updateDocumentTitle("not-found", hash);
-      }
+      const { page, product } = pageForRoute(hash);
+      setCurrentPage(page);
+      if (product) setSelectedProductTitle(product);
     };
 
     // Initialize state from the URL path on mount (supports direct links, legacy #hash links & crawlers)
@@ -819,58 +628,58 @@ export default function App() {
     switch (currentPage) {
       case "home":
         return {
-          title: "Solar Mounting Structure (MMS) Manufacturer",
-          description: "VRM Structures India Private Limited is a leading manufacturer of high-quality hot-dip galvanized & aluminum solar mounting structures (MMS) for commercial, residential, and utility-scale projects.",
+          title: "Solar Structure Manufacturer in Chennai | VRM Structures",
+          description: "Chennai manufacturer of hot-dip galvanized and aluminium solar module mounting structures (MMS), FRP walkways and BOS kits for installers, EPCs and dealers.",
           canonicalUrl: routeToUrl(""),
         };
       case "about":
         return {
           title: "About Us | Solar MMS Manufacturer in Chennai",
-          description: "Learn more about VRM Structures India Private Limited, our high-standard in-house solar structure fabrication, hot-dip galvanizing plant, and our commitment to quality Renewables infrastructure.",
+          description: "VRM Structures India Private Limited designs and manufactures solar mounting structures in Puzhal, Chennai, with in-house fabrication and galvanizing.",
           canonicalUrl: routeToUrl("about"),
         };
       case "products":
         return {
-          title: "Solar Mounting Structures & Solutions Catalog",
-          description: "Browse our solar structure catalog: RCC Roof MMS, Ground Mounted Solar Structures, Carport MMS, Solar Pump MMS, FRP Walkway, FRP Handrails, and Solar BOS Kits.",
+          title: "Solar Mounting Structures & BOS Kits",
+          description: "RCC roof, metal roof, ground mounted, carport and solar pump structures, plus FRP walkways, earthing kits and PM Surya Ghar BOS kits. Made in Chennai.",
           canonicalUrl: routeToUrl("products"),
         };
       case "services":
         return {
-          title: "In-House Manufacturing & Hot-Dip Galvanizing Services",
-          description: "We provide high-capacity in-house cold roll forming, advanced engineering design, custom solar mounting solutions fabrication, and premium hot-dip galvanizing services.",
+          title: "MMS Design, Fabrication & Galvanizing",
+          description: "In-house structural design, cold roll forming, fabrication and hot-dip galvanizing for solar mounting structures, from our Chennai plant.",
           canonicalUrl: routeToUrl("services"),
         };
       case "contact":
         return {
-          title: "Contact Us | Chennai Office & Manufacturing Plant",
-          description: "Get in touch with the VRM Structures sales and technical team. Contact details, corporate office location in Chennai, and factory address.",
+          title: "Contact Our Chennai Solar Structure Factory",
+          description: "Talk to the VRM Structures sales and engineering team about solar mounting structures. Factory at GNT Road, Puzhal, Chennai. Call +91 98843 09789.",
           canonicalUrl: routeToUrl("contact"),
         };
       case "careers":
         return {
-          title: "Careers | Join Our Solar Structure Engineering Team",
+          title: "Careers in Solar Structure Engineering",
           description: "Explore career opportunities at VRM Structures. Join us in manufacturing high-durability solar mounting structures and building clean energy solutions.",
           canonicalUrl: routeToUrl("careers"),
         };
       case "articles":
         if (currentRoute.startsWith("articles/")) return null;
         return {
-          title: "Solar Engineering Articles & Industry Insights",
-          description: "Read our technical articles and blogs on solar module mounting structures design, hot-dip galvanizing standards, wind load compliance, and solar rooftop safety guidelines.",
+          title: "Solar Structure Engineering Articles",
+          description: "Technical articles on solar mounting structure design: wind loads, purlin spacing, galvanizing, foundations, tilt angles and PM Surya Ghar structures.",
           canonicalUrl: routeToUrl("articles"),
         };
       case "quote":
         return {
-          title: "Interactive 3D Quote Builder | Customized MMS Cost",
+          title: "Solar Mounting Structure Quote (3D Builder)",
           description: "Configure your solar mounting structure online with our interactive 3D quote builder and request customized engineering drawing quotes directly.",
           canonicalUrl: routeToUrl("quote"),
         };
       case "downloads":
         if (currentRoute.startsWith("downloads/")) return null;
         return {
-          title: "Downloads | Technical Datasheets & Product Catalogs",
-          description: "Download official technical datasheets, CAD layouts, and product catalogs for all VRM solar mounting structures and safety walkways.",
+          title: "Brochure & Solar Datasheet Downloads",
+          description: "Download the VRM Structures brochure, the PM Surya Ghar kit catalogue and datasheets for the solar modules and inverters we supply.",
           canonicalUrl: routeToUrl("downloads"),
         };
       case "login":
@@ -902,6 +711,15 @@ export default function App() {
           description={seoData.description}
           canonicalUrl={seoData.canonicalUrl}
           noindex={"noindex" in seoData ? seoData.noindex : false}
+          schema={currentPage === "home" ? {
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            "mainEntity": HOME_FAQ.map((item) => ({
+              "@type": "Question",
+              "name": item.question,
+              "acceptedAnswer": { "@type": "Answer", "text": item.answer },
+            })),
+          } : undefined}
         />
       )}
 
@@ -1200,17 +1018,17 @@ export default function App() {
                                               className="absolute left-full top-0 ml-1.5 w-60 bg-white/95 backdrop-blur-md border border-slate-100 rounded-2xl p-2 shadow-[0_10px_30px_rgba(0,0,0,0.08)] z-50 text-left pointer-events-auto max-h-80 overflow-y-auto"
                                             >
                                               {[
-                                                { title: "CSI Solar 730Wp HJT Bifacial", id: "datasheet-730w-hjt-bifacial" },
-                                                { title: "550Wp Dual-Glass Bifacial", id: "datasheet-550w-bifacial" },
+                                                { title: "Loom Solar SHARK 730W HJT", id: "datasheet-730w-hjt-bifacial" },
+                                                { title: "Loom Solar SHARK 550W Bifacial", id: "datasheet-550w-bifacial" },
                                                 { title: "Loom Solar SHARK (625W)", id: "datasheet-loom-solar-shark-topcon" },
                                                 { title: "Waaree Elite N-Type (585W)", id: "datasheet-waaree-elite" },
-                                                { title: "Adani Bifacial PERC (550W)", id: "datasheet-adani-bifacial" },
-                                                { title: "Adani TOPCon 30mm (585W)", id: "datasheet-adani-topcon" },
+                                                { title: "Adani Bifacial PERC (555W)", id: "datasheet-adani-bifacial" },
+                                                { title: "Adani TOPCon 30mm (575W)", id: "datasheet-adani-topcon" },
                                                 { title: "Vikram Solar HYPERSOL (605W)", id: "datasheet-vikram-hypersol" },
                                                 { title: "Waaree Mono PERC (545W)", id: "datasheet-waaree-mono-perc" },
                                                 { title: "ReNew M10 Bifacial (560W)", id: "datasheet-renew-bifacial" },
-                                                { title: "TOPCon G2G Gen-II (590W)", id: "datasheet-topcon-g2g" },
-                                                { title: "TOPCon G2TB 35mm (590W)", id: "datasheet-topcon-g2tb-35mm" },
+                                                { title: "Adani TOPCon G2G Gen-II (580W)", id: "datasheet-topcon-g2g" },
+                                                { title: "Adani TOPCon G2TB 35mm (575W)", id: "datasheet-topcon-g2tb-35mm" },
                                                 { title: "Waaree Bifacial 30mm (550W)", id: "datasheet-waaree-bi-550" },
                                               ].map((panel) => (
                                                 <a href={routeToPath(`downloads/${panel.id}`)}
@@ -1268,9 +1086,9 @@ export default function App() {
                                               className="absolute left-full top-0 ml-1.5 w-60 bg-white/95 backdrop-blur-md border border-slate-100 rounded-2xl p-2 shadow-[0_10px_30px_rgba(0,0,0,0.08)] z-50 text-left pointer-events-auto"
                                             >
                                               {[
-                                                { title: "Polycab Grid-Tied & Hybrid", id: "datasheet-polycab-inverter" },
-                                                { title: "On-Grid Architecture Guide", id: "datasheet-ongrid-systems" },
-                                                { title: "Polycab 3-Phase Commercial", id: "datasheet-polycab-commercial-inverter" },
+                                                { title: "Polycab Single-Phase (1–5 kW)", id: "datasheet-polycab-inverter" },
+                                                { title: "Deye On-Grid Inverters", id: "datasheet-ongrid-systems" },
+                                                { title: "Polycab 3-Phase (6–40 kW)", id: "datasheet-polycab-commercial-inverter" },
                                               ].map((inv) => (
                                                 <a href={routeToPath(`downloads/${inv.id}`)}
                                                   key={inv.id}
@@ -1597,24 +1415,24 @@ export default function App() {
                                   const categorySlug = subItem === "Solar Panels" ? "solar-panels" : subItem === "Inverters" ? "inverters" : "brochures";
                                   const subDocs = subItem === "Solar Panels"
                                     ? [
-                                        { title: "CSI Solar 730Wp HJT Bifacial", id: "datasheet-730w-hjt-bifacial" },
-                                        { title: "550Wp Dual-Glass Bifacial", id: "datasheet-550w-bifacial" },
+                                        { title: "Loom Solar SHARK 730W HJT", id: "datasheet-730w-hjt-bifacial" },
+                                        { title: "Loom Solar SHARK 550W Bifacial", id: "datasheet-550w-bifacial" },
                                         { title: "Loom Solar SHARK (625W)", id: "datasheet-loom-solar-shark-topcon" },
                                         { title: "Waaree Elite N-Type (585W)", id: "datasheet-waaree-elite" },
-                                        { title: "Adani Bifacial PERC (550W)", id: "datasheet-adani-bifacial" },
-                                        { title: "Adani TOPCon 30mm (585W)", id: "datasheet-adani-topcon" },
+                                        { title: "Adani Bifacial PERC (555W)", id: "datasheet-adani-bifacial" },
+                                        { title: "Adani TOPCon 30mm (575W)", id: "datasheet-adani-topcon" },
                                         { title: "Vikram Solar HYPERSOL (605W)", id: "datasheet-vikram-hypersol" },
                                         { title: "Waaree Mono PERC (545W)", id: "datasheet-waaree-mono-perc" },
                                         { title: "ReNew M10 Bifacial (560W)", id: "datasheet-renew-bifacial" },
-                                        { title: "TOPCon G2G Gen-II (590W)", id: "datasheet-topcon-g2g" },
-                                        { title: "TOPCon G2TB 35mm (590W)", id: "datasheet-topcon-g2tb-35mm" },
+                                        { title: "Adani TOPCon G2G Gen-II (580W)", id: "datasheet-topcon-g2g" },
+                                        { title: "Adani TOPCon G2TB 35mm (575W)", id: "datasheet-topcon-g2tb-35mm" },
                                         { title: "Waaree Bifacial 30mm (550W)", id: "datasheet-waaree-bi-550" },
                                       ]
                                     : subItem === "Inverters"
                                       ? [
-                                          { title: "Polycab Grid-Tied & Hybrid", id: "datasheet-polycab-inverter" },
-                                          { title: "On-Grid Architecture Guide", id: "datasheet-ongrid-systems" },
-                                          { title: "Polycab 3-Phase Commercial", id: "datasheet-polycab-commercial-inverter" },
+                                          { title: "Polycab Single-Phase (1–5 kW)", id: "datasheet-polycab-inverter" },
+                                          { title: "Deye On-Grid Inverters", id: "datasheet-ongrid-systems" },
+                                          { title: "Polycab 3-Phase (6–40 kW)", id: "datasheet-polycab-commercial-inverter" },
                                         ]
                                       : [
                                           { title: "VRM Corporate Brochure", id: "datasheet-vrm-corporate-brochure" },
@@ -2117,7 +1935,7 @@ export default function App() {
                         >
                           {prod.glb ? (
                             <div className="absolute inset-0 w-full h-full">
-                              <Product3DViewer url={prod.glb} zoom={prod.zoom} autoRotate={true} isHovered={isHovered} />
+                              <WhenVisible><React.Suspense fallback={null}><Product3DViewer url={prod.glb} zoom={prod.zoom} autoRotate={true} isHovered={isHovered} /></React.Suspense></WhenVisible>
                             </div>
                           ) : prod.image ? (
                             <img 
@@ -2150,7 +1968,13 @@ export default function App() {
                           <h4 
                             className="font-display text-[15px] lg:text-[16px] font-bold leading-tight text-slate-900"
                           >
-                            {prod.title}
+                            <a
+                              href={pageHref("product-details", HOME_CARD_PRODUCT[prod.title] || prod.title)}
+                              onClick={(e) => { e.preventDefault(); navigateTo("product-details", HOME_CARD_PRODUCT[prod.title] || prod.title); }}
+                              className="hover:text-indigo-600 transition-colors"
+                            >
+                              {prod.title}
+                            </a>
                           </h4>
                           <p className="font-sans text-[12px] leading-relaxed text-slate-500 mt-2 font-light line-clamp-3">
                             {prod.desc}
@@ -2748,32 +2572,7 @@ export default function App() {
 
                     {/* FAQ Accordion List */}
                     <div className="mt-12 max-w-4xl flex flex-col gap-4">
-                      {[
-                        {
-                          question: "What type of Solar mounting structures do you offer?",
-                          answer: "We offer a variety of solar mounting structures, including ground mount systems, rooftop mounts, pole mounts, and non-penetrative roof mounts, designed to meet diverse project needs and site conditions."
-                        },
-                        {
-                          question: "Are your products customisable?",
-                          answer: "Yes, we provide customised solar racking solutions tailored to your specific project requirements, ensuring optimal performance and compatibility with your unique architectural design."
-                        },
-                        {
-                          question: "What materials are your mounting system made of?",
-                          answer: "Our mounting systems are constructed from high-quality steel and aluminum, ensuring durability, strength, and resistance to harsh weather conditions."
-                        },
-                        {
-                          question: "Do you provide installation support?",
-                          answer: "Yes, we offer comprehensive support that includes installation guidelines, technical documentation, and design assistance to ensure your project is successful from start to finish"
-                        },
-                        {
-                          question: "What certifications do your products have?",
-                          answer: "Our products adhere to industry standards and regulations, and we provide Material Test Certificates, load data, and compliance documents to assure you of their quality and reliability."
-                        },
-                        {
-                          question: "How do I determine which mounting solution is right for my project?",
-                          answer: "Our experienced team is available to assess your project needs, providing recommendations based on factors such as site conditions, energy requirements, and architectural design."
-                        }
-                      ].map((item, idx) => (
+                      {HOME_FAQ.map((item, idx) => (
                         <FAQAccordionItem
                           key={idx}
                           question={item.question}
@@ -3003,6 +2802,8 @@ export default function App() {
         <CareersPage
           onNavigate={(page, targetId) => navigateTo(page, targetId)}
         />
+      ) : currentPage === "tamil-nadu" ? (
+        <TamilNaduPage />
       ) : (
         <NotFoundPage
           onNavigate={(page, targetId) => navigateTo(page, targetId)}
@@ -3027,30 +2828,31 @@ export default function App() {
                   </div>
 
                   <p className="font-sans text-sm sm:text-base font-semibold text-slate-800 tracking-tight">
-                    Sign up to receive structure specifications.
+                    Get our structure specifications.
                   </p>
 
-                  {/* Email subscription box with pill outline */}
-                  <div className="relative flex items-center max-w-md w-full bg-slate-50 rounded-full p-1 border border-slate-200/60 shadow-sm focus-within:border-slate-300 transition-all">
-                    <input
-                      id="footer-email-input"
-                      name="email"
-                      type="email"
-                      autoComplete="email"
-                      placeholder="Enter you email"
-                      className="flex-1 bg-transparent px-5 py-3 text-xs sm:text-sm text-slate-800 placeholder:text-slate-400 font-normal focus:outline-none w-full"
-                    />
-                    <button
-                      type="submit"
-                      onClick={() => alert("Thank you for subscribing!")}
+                  {/* The old email sign-up box was not connected to anything; these two actions are. */}
+                  <div className="flex flex-wrap items-center gap-3 max-w-md">
+                    <a
+                      href="/vrm-structures-brochure.pdf"
+                      target="_blank"
+                      rel="noopener noreferrer"
                       className="px-6 py-3 bg-[#0F172A] hover:bg-black text-white text-xs font-bold rounded-full transition-all duration-200 select-none cursor-pointer"
                     >
-                      Submit
-                    </button>
+                      Download Brochure (PDF)
+                    </a>
+                    <a
+                      href={whatsappUrl("Hello VRM Structures, please send me your solar structure specifications and price list.")}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-6 py-3 border border-slate-300 hover:bg-slate-50 text-slate-800 text-xs font-bold rounded-full transition-all duration-200 select-none cursor-pointer"
+                    >
+                      Get Specs on WhatsApp
+                    </a>
                   </div>
 
                   <p className="font-sans text-[11px] text-slate-500 font-normal leading-normal max-w-sm">
-                    By subscribing you agree to with our Privacy Policy and provide consent to receive updates from our company.
+                    Sales: <a href="tel:+919884309789" className="hover:text-indigo-600">+91 98843 09789</a> · <a href="mailto:mms@vrmstructures.in" className="hover:text-indigo-600">mms@vrmstructures.in</a>
                   </p>
                 </div>
 
@@ -3062,11 +2864,13 @@ export default function App() {
                       Products
                     </span>
                     <ul className="flex flex-col gap-3 text-xs sm:text-[13px] text-slate-700 font-normal">
-                      <li><a href={pageHref("products")} onClick={(e) => { e.preventDefault(); navigateTo("products"); }} className="hover:text-indigo-600 transition-colors text-left cursor-pointer">Metal Roof</a></li>
-                      <li><a href={pageHref("products")} onClick={(e) => { e.preventDefault(); navigateTo("products"); }} className="hover:text-indigo-600 transition-colors text-left cursor-pointer">RCC Roof</a></li>
-                      <li><a href={pageHref("products")} onClick={(e) => { e.preventDefault(); navigateTo("products"); }} className="hover:text-indigo-600 transition-colors text-left cursor-pointer">Ground Mount</a></li>
-                      <li><a href={pageHref("products")} onClick={(e) => { e.preventDefault(); navigateTo("products"); }} className="hover:text-indigo-600 transition-colors text-left cursor-pointer">Carports</a></li>
-                      <li><a href={pageHref("products")} onClick={(e) => { e.preventDefault(); navigateTo("products"); }} className="hover:text-indigo-600 transition-colors text-left cursor-pointer">Accessories</a></li>
+                      <li><a href={pageHref("product-details", "Aluminum Mounting Structure")} onClick={(e) => { e.preventDefault(); navigateTo("product-details", "Aluminum Mounting Structure"); }} className="hover:text-indigo-600 transition-colors text-left cursor-pointer">Metal Roof</a></li>
+                      <li><a href={pageHref("product-details", "RCC Roof MMS")} onClick={(e) => { e.preventDefault(); navigateTo("product-details", "RCC Roof MMS"); }} className="hover:text-indigo-600 transition-colors text-left cursor-pointer">RCC Roof</a></li>
+                      <li><a href={pageHref("product-details", "Ground Mounted MMS")} onClick={(e) => { e.preventDefault(); navigateTo("product-details", "Ground Mounted MMS"); }} className="hover:text-indigo-600 transition-colors text-left cursor-pointer">Ground Mount</a></li>
+                      <li><a href={pageHref("product-details", "Carport MMS")} onClick={(e) => { e.preventDefault(); navigateTo("product-details", "Carport MMS"); }} className="hover:text-indigo-600 transition-colors text-left cursor-pointer">Carports</a></li>
+                      <li><a href={pageHref("product-details", "Hot Dip Galvanized Structures")} onClick={(e) => { e.preventDefault(); navigateTo("product-details", "Hot Dip Galvanized Structures"); }} className="hover:text-indigo-600 transition-colors text-left cursor-pointer">HDG Structures</a></li>
+                      <li><a href={pageHref("product-details", "PM Surya Ghar Kit")} onClick={(e) => { e.preventDefault(); navigateTo("product-details", "PM Surya Ghar Kit"); }} className="hover:text-indigo-600 transition-colors text-left cursor-pointer">PM Surya Ghar Kit</a></li>
+                      <li><a href={pageHref("product-details", "FRP Walkway")} onClick={(e) => { e.preventDefault(); navigateTo("product-details", "FRP Walkway"); }} className="hover:text-indigo-600 transition-colors text-left cursor-pointer">FRP Walkway</a></li>
                     </ul>
                   </div>
 
@@ -3094,6 +2898,7 @@ export default function App() {
                       <li><a href={pageHref("careers")} onClick={(e) => { e.preventDefault(); navigateTo("careers"); }} className="hover:text-indigo-600 transition-colors text-left cursor-pointer">Careers</a></li>
                       <li><a href={pageHref("articles")} onClick={(e) => { e.preventDefault(); navigateTo("articles"); }} className="hover:text-indigo-600 transition-colors text-left cursor-pointer">Blogs</a></li>
                       <li><a href={pageHref("contact")} onClick={(e) => { e.preventDefault(); navigateTo("contact"); }} className="hover:text-indigo-600 transition-colors text-left cursor-pointer">Contact Us</a></li>
+                      <li><a href="/solar-structure-manufacturer-tamil-nadu/" className="hover:text-indigo-600 transition-colors text-left cursor-pointer">Solar Structures in Tamil Nadu</a></li>
                     </ul>
                   </div>
 

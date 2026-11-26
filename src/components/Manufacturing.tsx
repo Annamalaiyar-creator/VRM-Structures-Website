@@ -1,10 +1,22 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { motion, useScroll, useMotionValueEvent } from 'framer-motion';
 import { Settings } from 'lucide-react';
 
 export default function Manufacturing() {
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  // Only download the 4.7 MB process video when the visitor scrolls near it.
+  const [loadVideo, setLoadVideo] = useState(false);
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container || loadVideo) return;
+    if (!('IntersectionObserver' in window)) { setLoadVideo(true); return; }
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) { setLoadVideo(true); observer.disconnect(); }
+    }, { rootMargin: '800px 0px' });
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [loadVideo]);
   const latestTargetTimeRef = useRef(0);
 
   // Direct fast seeking handler that doesn't drop frames
@@ -136,11 +148,11 @@ export default function Manufacturing() {
           {/* 1 Single Merged 20s Video (Full-Size Edge-to-Edge) */}
           <video
             ref={videoRef}
-            src="/videos/inhouse-process.mp4"
+            src={loadVideo ? "/videos/inhouse-process.mp4" : undefined}
             poster="/videos/thumbnails/1.mp4.png"
             muted
             playsInline
-            preload="auto"
+            preload={loadVideo ? "auto" : "none"}
             onSeeked={handleSeeked}
             className="w-full h-full object-cover select-none pointer-events-none"
           />

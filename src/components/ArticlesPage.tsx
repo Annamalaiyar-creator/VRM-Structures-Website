@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { ARTICLE_PRODUCTS, productPath } from "../data/relatedLinks";
 import { motion, AnimatePresence } from "motion/react";
 import {
   BookOpen,
@@ -50,7 +51,7 @@ const getDefaultArticles = (): Article[] => {
     ...LINKEDIN_ARTICLES,
     {
       id: "mms-foundation-solar-success",
-      title: "Building the Foundation for India’s Solar Success: The Role of Module Mounting Structures - VRM STRUCTURES",
+      title: "Building the Foundation for India’s Solar Success: The Role of Module Mounting Structures",
       category: "Placement Yield",
       excerpt: "In the dynamic landscape of India's solar industry, Module Mounting Structures (MMS) stand as essential pillars supporting the nation's ambitious renewable energy goals. As the country strives to enhance its solar capacity and reduce dependency on fossil fuels, the significance of robust and efficient MMS cannot be overstated.",
       content: [
@@ -65,16 +66,16 @@ const getDefaultArticles = (): Article[] => {
       readTime: "5 Min Read",
       author: "Velmurugan Rathinam",
       authorRole: "Founder & Director Of VRM Structure",
-      authorAvatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=150",
+      authorAvatar: "/founder.jpg",
       image: "https://images.unsplash.com/photo-1509391366360-2e959784a276?auto=format&fit=crop&q=80&w=800",
       colorFrom: "#FF5D63",
       colorTo: "#FF8B91"
     },
     {
       id: "surya-ghar-yojana-mms",
-      title: "MMS for PM Surya Ghar Muft Bijli Yojana - VRM STRUCTURES",
+      title: "MMS for PM Surya Ghar Muft Bijli Yojana",
       category: "Placement Yield",
-      excerpt: "VRM Structures India Private Limited is a leading name in the manufacturing of Solar PV Module Mounting Structures (MMS). As your comprehensive partner for Design, Fabrication, and Installation, we ensure our solutions meet both International and National Standards.",
+      excerpt: "Module mounting structures for PM Surya Ghar Muft Bijli Yojana rooftop projects: how VRM Structures designs, fabricates and installs MMS to national and international standards.",
       content: [
         "VRM Structures India Private Limited is a leading name in the manufacturing of Solar PV Module Mounting Structures (MMS). As your comprehensive partner for Design, Fabrication, and Installation, we ensure our solutions meet both International and National Standards.",
         "Empowering Residential Solar with PM Surya Ghar Muft Bijli Yojana: We are confident that our solutions align perfectly with the PM Surya Ghar Muft Bijli Yojana project’s requirements. Feel free to reach out if you need further information or wish to discuss your project needs.",
@@ -86,14 +87,14 @@ const getDefaultArticles = (): Article[] => {
       readTime: "4 Min Read",
       author: "Velmurugan Rathinam",
       authorRole: "Founder & Director Of VRM Structures",
-      authorAvatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=150",
+      authorAvatar: "/founder.jpg",
       image: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&q=80&w=800",
       colorFrom: "#FF8C42",
       colorTo: "#FFAE7A"
     },
     {
       id: "boost-bifacial-performance-mms",
-      title: "Boost Bifacial Panel Performance with VRM Structures: Maximizing Solar Generation Efficiency",
+      title: "Boost Bifacial Panel Performance with the Right Mounting Structure",
       category: "Wind Dynamics",
       excerpt: "Mounting structures play a crucial role in optimizing the performance of bifacial solar panels, which generate electricity from both their front and rear surfaces by capturing direct sunlight and reflected light (albedo). Specially designed mounting structures significantly enhance the energy output of bifacial panels.",
       content: [
@@ -110,7 +111,7 @@ const getDefaultArticles = (): Article[] => {
       readTime: "6 Min Read",
       author: "Velmurugan Rathinam",
       authorRole: "Founder & Director Of VRM Structures",
-      authorAvatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=150",
+      authorAvatar: "/founder.jpg",
       image: "https://images.unsplash.com/photo-1535813547-99c456a41d4a?auto=format&fit=crop&q=80&w=800",
       colorFrom: "#4D62E8",
       colorTo: "#7B8CFF"
@@ -132,14 +133,14 @@ const getDefaultArticles = (): Article[] => {
       readTime: "4 Min Read",
       author: "HR Division",
       authorRole: "Talent Acquisition Team",
-      authorAvatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=150",
+      authorAvatar: "/favicon.png",
       image: "https://images.unsplash.com/photo-1507537297725-24a1c029d3ca?auto=format&fit=crop&q=80&w=800",
       colorFrom: "#00C9FF",
       colorTo: "#92FE9D"
     },
     {
       id: "optimizing-solar-tilt-angles",
-      title: "Optimizing Solar Tilt Angles: VRM Structures India Pvt Ltd’s Customized Mounting Solutions for Maximum Solar Efficiency - Part 1",
+      title: "Optimizing Solar Tilt Angles for Maximum Solar Efficiency (Part 1)",
       category: "Engineering",
       excerpt: "Part 1 of our guide outlines how to determine the optimal tilt angle for solar modules based on latitude, seasonal dynamics, and local terrain parameters.",
       content: [
@@ -153,7 +154,7 @@ const getDefaultArticles = (): Article[] => {
       readTime: "6 Min Read",
       author: "Operations Team",
       authorRole: "Manufacturing Technology Group",
-      authorAvatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=150",
+      authorAvatar: "/favicon.png",
       image: "https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&q=80&w=800",
       colorFrom: "#11998e",
       colorTo: "#38ef7d"
@@ -174,7 +175,7 @@ const getDefaultArticles = (): Article[] => {
       readTime: "5 Min Read",
       author: "Training Academy",
       authorRole: "Safety and Human Development",
-      authorAvatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=150",
+      authorAvatar: "/favicon.png",
       image: "https://images.unsplash.com/photo-1573164713988-8665fc963095?auto=format&fit=crop&q=80&w=800",
       colorFrom: "#8e2de2",
       colorTo: "#4a00e0"
@@ -185,6 +186,21 @@ const getDefaultArticles = (): Article[] => {
 interface ArticlesPageProps {
   onNavigate: (page: "home" | "about" | "contact" | "careers" | "articles" | "products" | "services" | "quote", targetId?: string) => void;
   onContactClick: () => void;
+}
+
+/** Meta description of at most 160 characters: whole sentences where possible, else cut at a word boundary. */
+function metaDescription(text: string, max = 160): string {
+  const clean = text.replace(/\s+/g, " ").trim();
+  if (clean.length <= max) return clean;
+  const sentences = clean.match(/[^.!?]+[.!?]+(\s|$)/g) || [];
+  let out = "";
+  for (const sentence of sentences) {
+    if ((out + sentence).trim().length > max) break;
+    out += sentence;
+  }
+  if (out.trim().length >= 70) return out.trim();
+  const cut = clean.slice(0, max - 1);
+  return `${cut.slice(0, cut.lastIndexOf(" ")).replace(/[,;:]$/, "")}…`;
 }
 
 export default function ArticlesPage({ onNavigate, onContactClick }: ArticlesPageProps) {
@@ -273,7 +289,7 @@ export default function ArticlesPage({ onNavigate, onContactClick }: ArticlesPag
 
         <SEO
           title={selectedArticle.title.replace(/\s*-\s*VRM STRUCTURES$/i, "")}
-          description={selectedArticle.excerpt.length > 160 ? `${selectedArticle.excerpt.slice(0, 157).trimEnd()}...` : selectedArticle.excerpt}
+          description={metaDescription(selectedArticle.excerpt)}
           canonicalUrl={routeToUrl(`articles/${selectedArticle.id}`)}
           ogType="article"
           ogImage={selectedArticle.image.startsWith("/") ? `${SITE_ORIGIN}${selectedArticle.image}` : selectedArticle.image}
@@ -284,7 +300,9 @@ export default function ArticlesPage({ onNavigate, onContactClick }: ArticlesPag
             description: selectedArticle.excerpt,
             image: selectedArticle.image.startsWith("/") ? `${SITE_ORIGIN}${selectedArticle.image}` : selectedArticle.image,
             ...(selectedArticle.datePublished ? { datePublished: selectedArticle.datePublished } : {}),
-            author: { "@type": "Person", name: selectedArticle.author, jobTitle: selectedArticle.authorRole },
+            author: /team|division|academy/i.test(selectedArticle.author)
+              ? { "@type": "Organization", name: `VRM Structures ${selectedArticle.author}`, url: SITE_ORIGIN }
+              : { "@type": "Person", name: selectedArticle.author, jobTitle: selectedArticle.authorRole },
             publisher: { "@id": "https://vrmstructures.in/#organization" },
             mainEntityOfPage: routeToUrl(`articles/${selectedArticle.id}`),
             ...(selectedArticle.linkedinUrl ? { sameAs: selectedArticle.linkedinUrl } : {}),
@@ -425,6 +443,19 @@ export default function ArticlesPage({ onNavigate, onContactClick }: ArticlesPag
                 </a>
                 . Join the discussion there.
               </p>
+            )}
+
+            {ARTICLE_PRODUCTS[selectedArticle.id] && (
+              <div className="mt-10 bg-white border border-slate-200 rounded-3xl p-6">
+                <h2 className="font-display text-lg font-bold text-slate-900 mb-3">Related products</h2>
+                <ul className="flex flex-wrap gap-3">
+                  {ARTICLE_PRODUCTS[selectedArticle.id].map((title) => (
+                    <li key={title}>
+                      <a href={productPath(title)} className="inline-block px-4 py-2 rounded-full border border-slate-200 text-[13px] text-indigo-700 hover:bg-slate-50">{title}</a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             )}
 
             {/* Bottom Back Button & Share */}

@@ -458,7 +458,7 @@ export default function ProductsPage({ onNavigate, selectedCategory, setSelected
                       onClick={(e) => { e.preventDefault(); onNavigate("product-details", prod.title); }}
                       className="mt-6 w-full bg-slate-950 hover:bg-slate-900 text-white font-bold py-3.5 rounded-2xl text-[12px] transition-colors cursor-pointer flex items-center justify-center gap-2"
                     >
-                      View the Product
+                      View {prod.title}
                       <ArrowRight size={14} />
                     </a>
                   </div>
