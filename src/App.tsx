@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
 import { databaseApi } from "./lib/api";
-import { trackPageView } from "./lib/analytics";
 import { initRouter, getRoute, setRoute, routeToPath, routeToUrl, ROUTE_EVENT } from "./lib/router";
 import { motion, AnimatePresence } from "motion/react";
 import {
@@ -67,6 +66,7 @@ import {
 } from "./components/Artworks";
 import AboutPage from "./components/AboutPage";
 // Loaded on demand so three.js is not part of every page's first download.
+import WhenVisible from "./components/WhenVisible";
 const Product3DViewer = React.lazy(() => import("./components/Product3DViewer"));
 import ContactPage from "./components/ContactPage";
 import CareersPage from "./components/CareersPage";
@@ -578,15 +578,9 @@ export default function App() {
     window.addEventListener("scroll", handleScroll, { passive: true });
     handleScroll();
 
-    let lastTrackedPath = window.location.pathname;
     const handleHashChange = () => {
       const hash = getRoute();
       setCurrentRoute(hash);
-      if (window.location.pathname !== lastTrackedPath) {
-        lastTrackedPath = window.location.pathname;
-        // Let the new page's <title> render before recording the view.
-        setTimeout(() => trackPageView(window.location.pathname), 300);
-      }
       const { page, product } = pageForRoute(hash);
       setCurrentPage(page);
       if (product) setSelectedProductTitle(product);
@@ -1000,17 +994,17 @@ export default function App() {
                                               className="absolute left-full top-0 ml-1.5 w-60 bg-white/95 backdrop-blur-md border border-slate-100 rounded-2xl p-2 shadow-[0_10px_30px_rgba(0,0,0,0.08)] z-50 text-left pointer-events-auto max-h-80 overflow-y-auto"
                                             >
                                               {[
-                                                { title: "CSI Solar 730Wp HJT Bifacial", id: "datasheet-730w-hjt-bifacial" },
-                                                { title: "550Wp Dual-Glass Bifacial", id: "datasheet-550w-bifacial" },
+                                                { title: "Loom Solar SHARK 730W HJT", id: "datasheet-730w-hjt-bifacial" },
+                                                { title: "Loom Solar SHARK 550W Bifacial", id: "datasheet-550w-bifacial" },
                                                 { title: "Loom Solar SHARK (625W)", id: "datasheet-loom-solar-shark-topcon" },
                                                 { title: "Waaree Elite N-Type (585W)", id: "datasheet-waaree-elite" },
-                                                { title: "Adani Bifacial PERC (550W)", id: "datasheet-adani-bifacial" },
-                                                { title: "Adani TOPCon 30mm (585W)", id: "datasheet-adani-topcon" },
+                                                { title: "Adani Bifacial PERC (555W)", id: "datasheet-adani-bifacial" },
+                                                { title: "Adani TOPCon 30mm (575W)", id: "datasheet-adani-topcon" },
                                                 { title: "Vikram Solar HYPERSOL (605W)", id: "datasheet-vikram-hypersol" },
                                                 { title: "Waaree Mono PERC (545W)", id: "datasheet-waaree-mono-perc" },
                                                 { title: "ReNew M10 Bifacial (560W)", id: "datasheet-renew-bifacial" },
-                                                { title: "TOPCon G2G Gen-II (590W)", id: "datasheet-topcon-g2g" },
-                                                { title: "TOPCon G2TB 35mm (590W)", id: "datasheet-topcon-g2tb-35mm" },
+                                                { title: "Adani TOPCon G2G Gen-II (580W)", id: "datasheet-topcon-g2g" },
+                                                { title: "Adani TOPCon G2TB 35mm (575W)", id: "datasheet-topcon-g2tb-35mm" },
                                                 { title: "Waaree Bifacial 30mm (550W)", id: "datasheet-waaree-bi-550" },
                                               ].map((panel) => (
                                                 <a href={routeToPath(`downloads/${panel.id}`)}
@@ -1068,9 +1062,9 @@ export default function App() {
                                               className="absolute left-full top-0 ml-1.5 w-60 bg-white/95 backdrop-blur-md border border-slate-100 rounded-2xl p-2 shadow-[0_10px_30px_rgba(0,0,0,0.08)] z-50 text-left pointer-events-auto"
                                             >
                                               {[
-                                                { title: "Polycab Grid-Tied & Hybrid", id: "datasheet-polycab-inverter" },
-                                                { title: "On-Grid Architecture Guide", id: "datasheet-ongrid-systems" },
-                                                { title: "Polycab 3-Phase Commercial", id: "datasheet-polycab-commercial-inverter" },
+                                                { title: "Polycab Single-Phase (1–5 kW)", id: "datasheet-polycab-inverter" },
+                                                { title: "Deye On-Grid Inverters", id: "datasheet-ongrid-systems" },
+                                                { title: "Polycab 3-Phase (6–40 kW)", id: "datasheet-polycab-commercial-inverter" },
                                               ].map((inv) => (
                                                 <a href={routeToPath(`downloads/${inv.id}`)}
                                                   key={inv.id}
@@ -1397,24 +1391,24 @@ export default function App() {
                                   const categorySlug = subItem === "Solar Panels" ? "solar-panels" : subItem === "Inverters" ? "inverters" : "brochures";
                                   const subDocs = subItem === "Solar Panels"
                                     ? [
-                                        { title: "CSI Solar 730Wp HJT Bifacial", id: "datasheet-730w-hjt-bifacial" },
-                                        { title: "550Wp Dual-Glass Bifacial", id: "datasheet-550w-bifacial" },
+                                        { title: "Loom Solar SHARK 730W HJT", id: "datasheet-730w-hjt-bifacial" },
+                                        { title: "Loom Solar SHARK 550W Bifacial", id: "datasheet-550w-bifacial" },
                                         { title: "Loom Solar SHARK (625W)", id: "datasheet-loom-solar-shark-topcon" },
                                         { title: "Waaree Elite N-Type (585W)", id: "datasheet-waaree-elite" },
-                                        { title: "Adani Bifacial PERC (550W)", id: "datasheet-adani-bifacial" },
-                                        { title: "Adani TOPCon 30mm (585W)", id: "datasheet-adani-topcon" },
+                                        { title: "Adani Bifacial PERC (555W)", id: "datasheet-adani-bifacial" },
+                                        { title: "Adani TOPCon 30mm (575W)", id: "datasheet-adani-topcon" },
                                         { title: "Vikram Solar HYPERSOL (605W)", id: "datasheet-vikram-hypersol" },
                                         { title: "Waaree Mono PERC (545W)", id: "datasheet-waaree-mono-perc" },
                                         { title: "ReNew M10 Bifacial (560W)", id: "datasheet-renew-bifacial" },
-                                        { title: "TOPCon G2G Gen-II (590W)", id: "datasheet-topcon-g2g" },
-                                        { title: "TOPCon G2TB 35mm (590W)", id: "datasheet-topcon-g2tb-35mm" },
+                                        { title: "Adani TOPCon G2G Gen-II (580W)", id: "datasheet-topcon-g2g" },
+                                        { title: "Adani TOPCon G2TB 35mm (575W)", id: "datasheet-topcon-g2tb-35mm" },
                                         { title: "Waaree Bifacial 30mm (550W)", id: "datasheet-waaree-bi-550" },
                                       ]
                                     : subItem === "Inverters"
                                       ? [
-                                          { title: "Polycab Grid-Tied & Hybrid", id: "datasheet-polycab-inverter" },
-                                          { title: "On-Grid Architecture Guide", id: "datasheet-ongrid-systems" },
-                                          { title: "Polycab 3-Phase Commercial", id: "datasheet-polycab-commercial-inverter" },
+                                          { title: "Polycab Single-Phase (1–5 kW)", id: "datasheet-polycab-inverter" },
+                                          { title: "Deye On-Grid Inverters", id: "datasheet-ongrid-systems" },
+                                          { title: "Polycab 3-Phase (6–40 kW)", id: "datasheet-polycab-commercial-inverter" },
                                         ]
                                       : [
                                           { title: "VRM Corporate Brochure", id: "datasheet-vrm-corporate-brochure" },
@@ -1917,7 +1911,7 @@ export default function App() {
                         >
                           {prod.glb ? (
                             <div className="absolute inset-0 w-full h-full">
-                              <React.Suspense fallback={null}><Product3DViewer url={prod.glb} zoom={prod.zoom} autoRotate={true} isHovered={isHovered} /></React.Suspense>
+                              <WhenVisible><React.Suspense fallback={null}><Product3DViewer url={prod.glb} zoom={prod.zoom} autoRotate={true} isHovered={isHovered} /></React.Suspense></WhenVisible>
                             </div>
                           ) : prod.image ? (
                             <img 

@@ -20,7 +20,8 @@ declare global {
 
 /** GA4 measurement IDs ("G-XXXXXXXXXX"). */
 export const GA_MEASUREMENT_IDS: string[] = [
-  // "G-XXXXXXXXXX", // VRM Structures (company property)
+  "G-FMZ6ZE0LG3", // CyberFreezeDev (SEO reporting)
+  // "G-XXXXXXXXXX", // add further properties here, e.g. VRM Structures' own
 ];
 
 const envIds = ((import.meta as { env?: Record<string, string | undefined> }).env?.VITE_GA_MEASUREMENT_ID || "")
@@ -34,18 +35,14 @@ export function trackEvent(name: string, params: Record<string, unknown> = {}) {
   window.gtag?.("event", name, params);
 }
 
-export function trackPageView(path: string) {
-  window.gtag?.("event", "page_view", { page_path: path, page_location: window.location.href, page_title: document.title });
-}
-
+/**
+ * Sets up GA straight away (so no event is lost: they queue in dataLayer) but loads the
+ * gtag.js script itself only on the visitor's first interaction, or 3.5 s after the load
+ * event, whichever comes first, so it doesn't compete with the page while it loads.
+ */
 export function initAnalytics() {
   if (started || !MEASUREMENT_IDS.length || typeof window === "undefined") return;
   started = true;
-
-  const script = document.createElement("script");
-  script.async = true;
-  script.src = `https://www.googletagmanager.com/gtag/js?id=${MEASUREMENT_IDS[0]}`;
-  document.head.appendChild(script);
 
   window.dataLayer = window.dataLayer || [];
   window.gtag = function gtag() {
@@ -53,9 +50,9 @@ export function initAnalytics() {
     window.dataLayer!.push(arguments);
   };
   window.gtag("js", new Date());
-  // Page views are sent by trackPageView on every route change (the site is a single-page app).
-  for (const id of MEASUREMENT_IDS) window.gtag("config", id, { send_page_view: false });
-  trackPageView(window.location.pathname);
+  // Page views, including in-app page changes, come from GA4 enhanced measurement
+  // ("page changes based on browser history events", on by default for web streams).
+  for (const id of MEASUREMENT_IDS) window.gtag("config", id);
 
   // Contact clicks anywhere on the site count as leads.
   document.addEventListener("click", (event) => {
@@ -65,4 +62,20 @@ export function initAnalytics() {
     const method = href.startsWith("tel:") ? "phone" : href.startsWith("mailto:") ? "email" : /wa\.me|whatsapp\.com/.test(href) ? "whatsapp" : null;
     if (method) trackEvent("generate_lead", { method, link_text: (link.textContent || "").trim().slice(0, 60) });
   }, { capture: true });
+
+  const events = ["pointerdown", "keydown", "scroll", "touchstart"] as const;
+  let loaded = false;
+  const load = () => {
+    if (loaded) return;
+    loaded = true;
+    events.forEach((name) => window.removeEventListener(name, load));
+    const script = document.createElement("script");
+    script.async = true;
+    script.src = `https://www.googletagmanager.com/gtag/js?id=${MEASUREMENT_IDS[0]}`;
+    document.head.appendChild(script);
+  };
+  events.forEach((name) => window.addEventListener(name, load, { once: true, passive: true }));
+  const later = () => setTimeout(load, 3500);
+  if (document.readyState === "complete") later();
+  else window.addEventListener("load", later, { once: true });
 }

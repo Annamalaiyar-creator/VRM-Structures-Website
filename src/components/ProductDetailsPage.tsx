@@ -28,13 +28,16 @@ import {
   CityAboveCloudsBackground
 } from "./Artworks";
 import ScrollDownButton from "./ScrollDownButton";
+import WhenVisible from "./WhenVisible";
 import { ARTICLE_TITLES, PRODUCT_LINKS, articlePath, productPath } from "../data/relatedLinks";
 // three.js (~640 KB) loads only when a product page shows its 3D model.
 const RCCRoof3DViewer = React.lazy(() => import("./RCCRoof3DViewer"));
 const Viewer3D = (props: { url: string; zoom?: number }) => (
-  <React.Suspense fallback={<div className="w-full h-full rounded-[1.75rem] bg-[#0b1530]" />}>
-    <RCCRoof3DViewer {...props} />
-  </React.Suspense>
+  <WhenVisible>
+    <React.Suspense fallback={<div className="w-full h-full rounded-[1.75rem] bg-[#0b1530]" />}>
+      <RCCRoof3DViewer {...props} />
+    </React.Suspense>
+  </WhenVisible>
 );
 
 /** Search-result title (" | VRM Structures" is appended), meta description and H1 per product, keyed by product title. */
