@@ -602,6 +602,28 @@ function InquiryForm() {
   );
 }
 
+type AppPage = "home" | "about" | "contact" | "careers" | "articles" | "downloads" | "login" | "quote" | "products" | "services" | "product-details" | "not-found";
+
+/** Which page (and product, for product pages) a route such as "products/rcc-roof-mms" shows. */
+function pageForRoute(route: string): { page: AppPage; product?: string } {
+  if (!route) return { page: "home" };
+  if (route.startsWith("products/")) {
+    return { page: "product-details", product: decodeURIComponent(route.slice("products/".length).split("?")[0]) };
+  }
+  if (route === "404") return { page: "not-found" };
+  if (route.startsWith("articles")) return { page: "articles" };
+  if (route.startsWith("careers")) return { page: "careers" };
+  if (route.startsWith("downloads")) return { page: "downloads" };
+  if (route.startsWith("product-details")) {
+    const title = route.replace("product-details/", "");
+    return { page: "product-details", product: title && title !== "product-details" ? decodeURIComponent(title) : undefined };
+  }
+  if (route.startsWith("login") || route.startsWith("admin")) return { page: "login" };
+  const validPages: AppPage[] = ["home", "about", "contact", "careers", "downloads", "login", "quote", "products", "services", "product-details"];
+  const page = route.split("?")[0] as AppPage;
+  return { page: validPages.includes(page) ? page : "not-found" };
+}
+
 export default function App() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [loginModalOpen, setLoginModalOpen] = useState(false);
@@ -610,10 +632,12 @@ export default function App() {
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
   const [isHeroMuted, setIsHeroMuted] = useState(true);
   const heroVideoRef = useRef<HTMLVideoElement>(null);
-  const [currentPage, setCurrentPage] = useState<"home" | "about" | "contact" | "careers" | "articles" | "downloads" | "login" | "quote" | "products" | "services" | "product-details" | "not-found">("home");
+  // Start on the page in the URL, not on "home": rendering home first (even for one frame) would
+  // replace the prerendered page and start the home page's hero videos downloading on every page.
+  const [currentPage, setCurrentPage] = useState<AppPage>(() => pageForRoute(getRoute()).page);
   // Full current route (e.g. "downloads/<id>"); re-renders the page-level SEO tags on every URL change.
   const [currentRoute, setCurrentRoute] = useState<string>(() => getRoute());
-  const [selectedProductTitle, setSelectedProductTitle] = useState("Metal Roof MMS");
+  const [selectedProductTitle, setSelectedProductTitle] = useState(() => pageForRoute(getRoute()).product || "Metal Roof MMS");
   const [productsDropdownOpen, setProductsDropdownOpen] = useState(false);
   const [mountingDropdownOpen, setMountingDropdownOpen] = useState(false);
   const [aluminumDropdownOpen, setAluminumDropdownOpen] = useState(false);
@@ -634,45 +658,6 @@ export default function App() {
   const [selectedThickness, setSelectedThickness] = useState<string>("All Thicknesses");
   const [activeDropdown, setActiveDropdown] = useState<"category" | "material" | "thickness" | null>(null);
 
-  const updateDocumentTitle = (page: string, hash: string) => {
-    const titles: Record<string, string> = {
-      home: "VRM Structures India Private Limited | Solar Mounting Structure (MMS) Manufacturer",
-      about: "About Us | VRM Structures - Leading Solar PV MMS Manufacturer",
-      contact: "Contact Us | VRM Structures India Private Limited",
-      careers: "Careers & Openings | VRM Structures India Private Limited",
-      articles: "Solar Insights & Articles | VRM Structures",
-      downloads: "Product Brochures & Catalog Downloads | VRM Structures",
-      login: "Admin Portal | VRM Structures",
-      quote: "Get a Custom Quote | VRM Structures India Private Limited",
-      products: "Solar Mounting Products & Solutions | VRM Structures",
-      services: "EPC, Design, Testing & Galvanizing Services | VRM Structures",
-      "product-details": "Product Specifications & Details | VRM Structures",
-    };
-
-    let title = titles[page] || "VRM Structures India Private Limited";
-
-    if (page === "downloads" && hash.startsWith("downloads/")) {
-      const id = hash.replace("downloads/", "");
-      const item = DOWNLOADS_DATA.find(d => d.id === id);
-      if (item) {
-        title = item.seoTitle || `${item.title} | VRM Structures`;
-      }
-    } else if (page === "articles" && hash.startsWith("articles/")) {
-      const id = hash.replace("articles/", "");
-      void databaseApi.articles().then((list) => {
-        const article = list.find((item) => item.id === id);
-        if (article) document.title = `${article.title} | VRM Structures`;
-      }).catch(() => undefined);
-    } else if (page === "product-details" && hash.startsWith("product-details/")) {
-      const pTitle = hash.replace("product-details/", "");
-      if (pTitle) {
-        title = `${decodeURIComponent(pTitle)} Specifications & Details | VRM Structures`;
-      }
-    }
-
-    document.title = title;
-  };
-
   type PageName = "home" | "about" | "contact" | "careers" | "articles" | "downloads" | "login" | "quote" | "products" | "services" | "product-details" | "not-found";
 
   const routeFor = (page: PageName, targetId?: string) =>
@@ -691,7 +676,6 @@ export default function App() {
     const targetHash = routeFor(page, targetId);
     setRoute(targetHash);
     setCurrentPage(page);
-    updateDocumentTitle(page, targetHash);
     if (page === "product-details" && targetId) {
       setSelectedProductTitle(targetId);
     }
@@ -736,69 +720,9 @@ export default function App() {
     const handleHashChange = () => {
       const hash = getRoute();
       setCurrentRoute(hash);
-      if (!hash) {
-        setCurrentPage("home");
-        updateDocumentTitle("home", "");
-        return;
-      }
-
-      if (hash.startsWith("products/")) {
-        const slug = hash.slice("products/".length).split("?")[0];
-        setCurrentPage("product-details");
-        setSelectedProductTitle(decodeURIComponent(slug));
-        updateDocumentTitle("product-details", hash);
-        return;
-      }
-
-      if (hash === "404") {
-        setCurrentPage("not-found");
-        updateDocumentTitle("not-found", hash);
-        return;
-      }
-
-      if (hash.startsWith("articles")) {
-        setCurrentPage("articles");
-        updateDocumentTitle("articles", hash);
-        return;
-      }
-
-      if (hash.startsWith("careers")) {
-        setCurrentPage("careers");
-        updateDocumentTitle("careers", hash);
-        return;
-      }
-
-      if (hash.startsWith("downloads")) {
-        setCurrentPage("downloads");
-        updateDocumentTitle("downloads", hash);
-        return;
-      }
-
-      if (hash.startsWith("product-details")) {
-        setCurrentPage("product-details");
-        const title = hash.replace("product-details/", "");
-        if (title && title !== "product-details") {
-          setSelectedProductTitle(decodeURIComponent(title));
-        }
-        updateDocumentTitle("product-details", hash);
-        return;
-      }
-
-      if (hash.startsWith("login") || hash.startsWith("admin")) {
-        setCurrentPage("login");
-        updateDocumentTitle("login", hash);
-        return;
-      }
-
-      const validPages = ["home", "about", "contact", "careers", "downloads", "login", "quote", "products", "services", "product-details"];
-      const page = hash.split("?")[0];
-      if (validPages.includes(page)) {
-        setCurrentPage(page as any);
-        updateDocumentTitle(page, hash);
-      } else {
-        setCurrentPage("not-found");
-        updateDocumentTitle("not-found", hash);
-      }
+      const { page, product } = pageForRoute(hash);
+      setCurrentPage(page);
+      if (product) setSelectedProductTitle(product);
     };
 
     // Initialize state from the URL path on mount (supports direct links, legacy #hash links & crawlers)
@@ -819,58 +743,58 @@ export default function App() {
     switch (currentPage) {
       case "home":
         return {
-          title: "Solar Mounting Structure (MMS) Manufacturer",
-          description: "VRM Structures India Private Limited is a leading manufacturer of high-quality hot-dip galvanized & aluminum solar mounting structures (MMS) for commercial, residential, and utility-scale projects.",
+          title: "Solar Structure Manufacturer in Chennai | VRM Structures",
+          description: "Chennai manufacturer of hot-dip galvanized and aluminium solar module mounting structures (MMS), FRP walkways and BOS kits for installers, EPCs and dealers.",
           canonicalUrl: routeToUrl(""),
         };
       case "about":
         return {
           title: "About Us | Solar MMS Manufacturer in Chennai",
-          description: "Learn more about VRM Structures India Private Limited, our high-standard in-house solar structure fabrication, hot-dip galvanizing plant, and our commitment to quality Renewables infrastructure.",
+          description: "VRM Structures India Private Limited designs and manufactures solar mounting structures in Puzhal, Chennai, with in-house fabrication and galvanizing.",
           canonicalUrl: routeToUrl("about"),
         };
       case "products":
         return {
-          title: "Solar Mounting Structures & Solutions Catalog",
-          description: "Browse our solar structure catalog: RCC Roof MMS, Ground Mounted Solar Structures, Carport MMS, Solar Pump MMS, FRP Walkway, FRP Handrails, and Solar BOS Kits.",
+          title: "Solar Mounting Structures & BOS Kits",
+          description: "RCC roof, metal roof, ground mounted, carport and solar pump structures, plus FRP walkways, earthing kits and PM Surya Ghar BOS kits. Made in Chennai.",
           canonicalUrl: routeToUrl("products"),
         };
       case "services":
         return {
-          title: "In-House Manufacturing & Hot-Dip Galvanizing Services",
-          description: "We provide high-capacity in-house cold roll forming, advanced engineering design, custom solar mounting solutions fabrication, and premium hot-dip galvanizing services.",
+          title: "MMS Design, Fabrication & Galvanizing",
+          description: "In-house structural design, cold roll forming, fabrication and hot-dip galvanizing for solar mounting structures, from our Chennai plant.",
           canonicalUrl: routeToUrl("services"),
         };
       case "contact":
         return {
-          title: "Contact Us | Chennai Office & Manufacturing Plant",
-          description: "Get in touch with the VRM Structures sales and technical team. Contact details, corporate office location in Chennai, and factory address.",
+          title: "Contact Our Chennai Solar Structure Factory",
+          description: "Talk to the VRM Structures sales and engineering team about solar mounting structures. Factory at GNT Road, Puzhal, Chennai. Call +91 98843 09789.",
           canonicalUrl: routeToUrl("contact"),
         };
       case "careers":
         return {
-          title: "Careers | Join Our Solar Structure Engineering Team",
+          title: "Careers in Solar Structure Engineering",
           description: "Explore career opportunities at VRM Structures. Join us in manufacturing high-durability solar mounting structures and building clean energy solutions.",
           canonicalUrl: routeToUrl("careers"),
         };
       case "articles":
         if (currentRoute.startsWith("articles/")) return null;
         return {
-          title: "Solar Engineering Articles & Industry Insights",
-          description: "Read our technical articles and blogs on solar module mounting structures design, hot-dip galvanizing standards, wind load compliance, and solar rooftop safety guidelines.",
+          title: "Solar Structure Engineering Articles",
+          description: "Technical articles on solar mounting structure design: wind loads, purlin spacing, galvanizing, foundations, tilt angles and PM Surya Ghar structures.",
           canonicalUrl: routeToUrl("articles"),
         };
       case "quote":
         return {
-          title: "Interactive 3D Quote Builder | Customized MMS Cost",
+          title: "Solar Mounting Structure Quote (3D Builder)",
           description: "Configure your solar mounting structure online with our interactive 3D quote builder and request customized engineering drawing quotes directly.",
           canonicalUrl: routeToUrl("quote"),
         };
       case "downloads":
         if (currentRoute.startsWith("downloads/")) return null;
         return {
-          title: "Downloads | Technical Datasheets & Product Catalogs",
-          description: "Download official technical datasheets, CAD layouts, and product catalogs for all VRM solar mounting structures and safety walkways.",
+          title: "Brochure & Solar Datasheet Downloads",
+          description: "Download the VRM Structures brochure, the PM Surya Ghar kit catalogue and datasheets for the solar modules and inverters we supply.",
           canonicalUrl: routeToUrl("downloads"),
         };
       case "login":
@@ -3062,11 +2986,13 @@ export default function App() {
                       Products
                     </span>
                     <ul className="flex flex-col gap-3 text-xs sm:text-[13px] text-slate-700 font-normal">
-                      <li><a href={pageHref("products")} onClick={(e) => { e.preventDefault(); navigateTo("products"); }} className="hover:text-indigo-600 transition-colors text-left cursor-pointer">Metal Roof</a></li>
-                      <li><a href={pageHref("products")} onClick={(e) => { e.preventDefault(); navigateTo("products"); }} className="hover:text-indigo-600 transition-colors text-left cursor-pointer">RCC Roof</a></li>
-                      <li><a href={pageHref("products")} onClick={(e) => { e.preventDefault(); navigateTo("products"); }} className="hover:text-indigo-600 transition-colors text-left cursor-pointer">Ground Mount</a></li>
-                      <li><a href={pageHref("products")} onClick={(e) => { e.preventDefault(); navigateTo("products"); }} className="hover:text-indigo-600 transition-colors text-left cursor-pointer">Carports</a></li>
-                      <li><a href={pageHref("products")} onClick={(e) => { e.preventDefault(); navigateTo("products"); }} className="hover:text-indigo-600 transition-colors text-left cursor-pointer">Accessories</a></li>
+                      <li><a href={pageHref("product-details", "Aluminum Mounting Structure")} onClick={(e) => { e.preventDefault(); navigateTo("product-details", "Aluminum Mounting Structure"); }} className="hover:text-indigo-600 transition-colors text-left cursor-pointer">Metal Roof</a></li>
+                      <li><a href={pageHref("product-details", "RCC Roof MMS")} onClick={(e) => { e.preventDefault(); navigateTo("product-details", "RCC Roof MMS"); }} className="hover:text-indigo-600 transition-colors text-left cursor-pointer">RCC Roof</a></li>
+                      <li><a href={pageHref("product-details", "Ground Mounted MMS")} onClick={(e) => { e.preventDefault(); navigateTo("product-details", "Ground Mounted MMS"); }} className="hover:text-indigo-600 transition-colors text-left cursor-pointer">Ground Mount</a></li>
+                      <li><a href={pageHref("product-details", "Carport MMS")} onClick={(e) => { e.preventDefault(); navigateTo("product-details", "Carport MMS"); }} className="hover:text-indigo-600 transition-colors text-left cursor-pointer">Carports</a></li>
+                      <li><a href={pageHref("product-details", "Hot Dip Galvanized Structures")} onClick={(e) => { e.preventDefault(); navigateTo("product-details", "Hot Dip Galvanized Structures"); }} className="hover:text-indigo-600 transition-colors text-left cursor-pointer">HDG Structures</a></li>
+                      <li><a href={pageHref("product-details", "PM Surya Ghar Kit")} onClick={(e) => { e.preventDefault(); navigateTo("product-details", "PM Surya Ghar Kit"); }} className="hover:text-indigo-600 transition-colors text-left cursor-pointer">PM Surya Ghar Kit</a></li>
+                      <li><a href={pageHref("product-details", "FRP Walkway")} onClick={(e) => { e.preventDefault(); navigateTo("product-details", "FRP Walkway"); }} className="hover:text-indigo-600 transition-colors text-left cursor-pointer">FRP Walkway</a></li>
                     </ul>
                   </div>
 

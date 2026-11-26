@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en-IN">
 
 <head>
   <meta charset="UTF-8" />
@@ -10,15 +10,13 @@
   <!-- Company Favicon & Branding -->
   <link rel="icon" type="image/x-icon" href="/favicon.ico" />
   <link rel="icon" type="image/png" sizes="64x64" href="/favicon.png" />
-  <link rel="icon" type="image/png" href="/vrm-logo-cropped.png" />
   <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico" />
-  <link rel="apple-touch-icon" href="/vrm-logo-cropped.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
   
   <!-- SEO Meta Tags
        Description, robots, canonical, Open Graph and Twitter tags are set per page
        by src/components/SEO.tsx and baked into each page by scripts/prerender.mjs.
        Do not add a static canonical here: it would point every page at the homepage. -->
-  <meta name="keywords" content="Solar MMS, Module Mounting Structures, Solar structure manufacturer, Hot-dip galvanized steel structures, Aluminum mounting rails, Solar carport structures, Solar PV mounting, VRM Structures Coimbatore, India solar energy" />
   <meta name="author" content="VRM Structures India Private Limited" />
 
   <!-- Fonts & Prefetching -->
@@ -27,7 +25,7 @@
   <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800;900&display=swap" />
 
-  <!-- Structured Data: Organization & WebSite -->
+  <!-- Structured Data: Organization, LocalBusiness (Chennai factory) & WebSite -->
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -36,12 +34,19 @@
         "@type": "Organization",
         "@id": "https://vrmstructures.in/#organization",
         "name": "VRM Structures India Private Limited",
+        "legalName": "VRM Structures India Private Limited",
+        "alternateName": "VRM Structures",
         "url": "https://vrmstructures.in/",
         "logo": "https://vrmstructures.in/vrm-logo.png",
         "image": "https://vrmstructures.in/vrm-factory-building.jpg",
-        "description": "Leading manufacturer of high-quality Solar PV Module Mounting Structures (MMS), hot-dip galvanized steel structures, and aluminum mounting rails in India.",
+        "description": "Manufacturer of solar PV module mounting structures (MMS), hot-dip galvanized steel structures, aluminium mounting rails, FRP walkways and solar BOS kits in Chennai, India.",
+        "foundingDate": "2018",
+        "founder": {
+          "@type": "Person",
+          "name": "Velmurugan Rathinam"
+        },
         "email": "mms@vrmstructures.in",
-        "telephone": "+919884309789",
+        "telephone": "+91-98843-09789",
         "address": {
           "@type": "PostalAddress",
           "streetAddress": "No 1427, GNT Road, Nagappa Industrial Estate, Puzhal",
@@ -52,11 +57,61 @@
         },
         "contactPoint": {
           "@type": "ContactPoint",
-          "telephone": "+919884309789",
+          "telephone": "+91-98843-09789",
+          "email": "mms@vrmstructures.in",
           "contactType": "sales",
           "areaServed": "IN",
-          "availableLanguage": ["English", "Tamil", "Telugu", "Hindi"]
+          "availableLanguage": [
+            "English",
+            "Tamil",
+            "Telugu",
+            "Hindi"
+          ]
+        },
+        "location": {
+          "@id": "https://vrmstructures.in/#chennai-factory"
         }
+      },
+      {
+        "@type": "LocalBusiness",
+        "@id": "https://vrmstructures.in/#chennai-factory",
+        "name": "VRM Structures India Private Limited",
+        "parentOrganization": {
+          "@id": "https://vrmstructures.in/#organization"
+        },
+        "url": "https://vrmstructures.in/",
+        "image": "https://vrmstructures.in/vrm-factory-building.jpg",
+        "telephone": "+91-98843-09789",
+        "email": "mms@vrmstructures.in",
+        "address": {
+          "@type": "PostalAddress",
+          "streetAddress": "No 1427, GNT Road, Nagappa Industrial Estate, Puzhal",
+          "addressLocality": "Chennai",
+          "addressRegion": "Tamil Nadu",
+          "postalCode": "600066",
+          "addressCountry": "IN"
+        },
+        "geo": {
+          "@type": "GeoCoordinates",
+          "latitude": 13.152,
+          "longitude": 80.2087
+        },
+        "openingHoursSpecification": [
+          {
+            "@type": "OpeningHoursSpecification",
+            "dayOfWeek": [
+              "Monday",
+              "Tuesday",
+              "Wednesday",
+              "Thursday",
+              "Friday",
+              "Saturday"
+            ],
+            "opens": "09:30",
+            "closes": "18:30"
+          }
+        ],
+        "areaServed": "IN"
       },
       {
         "@type": "WebSite",
@@ -66,7 +121,7 @@
         "publisher": {
           "@id": "https://vrmstructures.in/#organization"
         },
-        "inLanguage": "en-US"
+        "inLanguage": "en-IN"
       }
     ]
   }

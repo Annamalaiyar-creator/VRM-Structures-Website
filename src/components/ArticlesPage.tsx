@@ -50,7 +50,7 @@ const getDefaultArticles = (): Article[] => {
     ...LINKEDIN_ARTICLES,
     {
       id: "mms-foundation-solar-success",
-      title: "Building the Foundation for India’s Solar Success: The Role of Module Mounting Structures - VRM STRUCTURES",
+      title: "Building the Foundation for India’s Solar Success: The Role of Module Mounting Structures",
       category: "Placement Yield",
       excerpt: "In the dynamic landscape of India's solar industry, Module Mounting Structures (MMS) stand as essential pillars supporting the nation's ambitious renewable energy goals. As the country strives to enhance its solar capacity and reduce dependency on fossil fuels, the significance of robust and efficient MMS cannot be overstated.",
       content: [
@@ -72,9 +72,9 @@ const getDefaultArticles = (): Article[] => {
     },
     {
       id: "surya-ghar-yojana-mms",
-      title: "MMS for PM Surya Ghar Muft Bijli Yojana - VRM STRUCTURES",
+      title: "MMS for PM Surya Ghar Muft Bijli Yojana",
       category: "Placement Yield",
-      excerpt: "VRM Structures India Private Limited is a leading name in the manufacturing of Solar PV Module Mounting Structures (MMS). As your comprehensive partner for Design, Fabrication, and Installation, we ensure our solutions meet both International and National Standards.",
+      excerpt: "Module mounting structures for PM Surya Ghar Muft Bijli Yojana rooftop projects: how VRM Structures designs, fabricates and installs MMS to national and international standards.",
       content: [
         "VRM Structures India Private Limited is a leading name in the manufacturing of Solar PV Module Mounting Structures (MMS). As your comprehensive partner for Design, Fabrication, and Installation, we ensure our solutions meet both International and National Standards.",
         "Empowering Residential Solar with PM Surya Ghar Muft Bijli Yojana: We are confident that our solutions align perfectly with the PM Surya Ghar Muft Bijli Yojana project’s requirements. Feel free to reach out if you need further information or wish to discuss your project needs.",
@@ -93,7 +93,7 @@ const getDefaultArticles = (): Article[] => {
     },
     {
       id: "boost-bifacial-performance-mms",
-      title: "Boost Bifacial Panel Performance with VRM Structures: Maximizing Solar Generation Efficiency",
+      title: "Boost Bifacial Panel Performance with the Right Mounting Structure",
       category: "Wind Dynamics",
       excerpt: "Mounting structures play a crucial role in optimizing the performance of bifacial solar panels, which generate electricity from both their front and rear surfaces by capturing direct sunlight and reflected light (albedo). Specially designed mounting structures significantly enhance the energy output of bifacial panels.",
       content: [
@@ -139,7 +139,7 @@ const getDefaultArticles = (): Article[] => {
     },
     {
       id: "optimizing-solar-tilt-angles",
-      title: "Optimizing Solar Tilt Angles: VRM Structures India Pvt Ltd’s Customized Mounting Solutions for Maximum Solar Efficiency - Part 1",
+      title: "Optimizing Solar Tilt Angles for Maximum Solar Efficiency (Part 1)",
       category: "Engineering",
       excerpt: "Part 1 of our guide outlines how to determine the optimal tilt angle for solar modules based on latitude, seasonal dynamics, and local terrain parameters.",
       content: [
@@ -185,6 +185,21 @@ const getDefaultArticles = (): Article[] => {
 interface ArticlesPageProps {
   onNavigate: (page: "home" | "about" | "contact" | "careers" | "articles" | "products" | "services" | "quote", targetId?: string) => void;
   onContactClick: () => void;
+}
+
+/** Meta description of at most 160 characters: whole sentences where possible, else cut at a word boundary. */
+function metaDescription(text: string, max = 160): string {
+  const clean = text.replace(/\s+/g, " ").trim();
+  if (clean.length <= max) return clean;
+  const sentences = clean.match(/[^.!?]+[.!?]+(\s|$)/g) || [];
+  let out = "";
+  for (const sentence of sentences) {
+    if ((out + sentence).trim().length > max) break;
+    out += sentence;
+  }
+  if (out.trim().length >= 70) return out.trim();
+  const cut = clean.slice(0, max - 1);
+  return `${cut.slice(0, cut.lastIndexOf(" ")).replace(/[,;:]$/, "")}…`;
 }
 
 export default function ArticlesPage({ onNavigate, onContactClick }: ArticlesPageProps) {
@@ -273,7 +288,7 @@ export default function ArticlesPage({ onNavigate, onContactClick }: ArticlesPag
 
         <SEO
           title={selectedArticle.title.replace(/\s*-\s*VRM STRUCTURES$/i, "")}
-          description={selectedArticle.excerpt.length > 160 ? `${selectedArticle.excerpt.slice(0, 157).trimEnd()}...` : selectedArticle.excerpt}
+          description={metaDescription(selectedArticle.excerpt)}
           canonicalUrl={routeToUrl(`articles/${selectedArticle.id}`)}
           ogType="article"
           ogImage={selectedArticle.image.startsWith("/") ? `${SITE_ORIGIN}${selectedArticle.image}` : selectedArticle.image}

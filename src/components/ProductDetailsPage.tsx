@@ -297,6 +297,32 @@ function RCCRoof3DViewer({ url, zoom = 1.0 }: { url: string; zoom?: number }) {
   );
 }
 
+/** Search-result title (" | VRM Structures" is appended), meta description and H1 per product, keyed by product title. */
+const PRODUCT_SEO: Record<string, { h1: string; title: string; description: string }> = {
+  "Metal Roof MMS": { h1: "Metal Roof Solar Mounting Structure", title: "Aluminium Solar Structure for Metal Roofs", description: "Leak-proof aluminium solar mounting structures for trapezoidal and standing-seam metal roofs, with SS304 fasteners and wind design up to 180 km/h (IS 875)." },
+  "RCC Roof MMS": { h1: "RCC Roof Solar Mounting Structure", title: "RCC Roof Solar Structure (Elevated MMS)", description: "Elevated solar mounting structures for flat RCC rooftops, designed for wind speeds up to 160 km/h (IS 875) with ballast or chemical-anchor foundations." },
+  "Customized MMS": { h1: "Custom Solar Mounting Structures", title: "Custom Solar Mounting Structures (MMS)", description: "Custom-engineered solar structures for uneven ground, walls and complex layouts, with STAAD.Pro design reports and tilt angles from 0° to 45°." },
+  "Ground Mounted MMS": { h1: "Ground Mounted Solar Structures", title: "Ground Mounted Solar Structure Manufacturer", description: "Hot-dip galvanized ground mount solar structures (min. 80 micron zinc) for utility and C&I plants, designed for wind speeds up to 210 km/h (IS 875)." },
+  "Solar Pump MMS": { h1: "Solar Pump Mounting Structures", title: "Solar Pump Structure Manufacturer", description: "Hot-dip galvanized solar water pump structures with seasonal tilt adjustment from 10° to 45° and anti-theft hardware, built for farm sites." },
+  "Carport MMS": { h1: "Solar Carport Structures", title: "Solar Carport Structure Manufacturer", description: "Galvanized steel solar carport structures that turn parking areas into power plants, designed for wind speeds up to 180 km/h (IS 875)." },
+  "Aluminum Module Mounting Structure": { h1: "Aluminium Solar Mounting Structures", title: "Aluminium Solar Structure for Metal Roofs", description: "Anodized aluminium 6005-T5 / 6063-T6 solar rails for trapezoidal, standing seam and Klip-Lok roofs. FEA and pull-out tested, 100 mm to 6 m lengths." },
+  "Hot Dip Galvanized Structures": { h1: "Hot Dip Galvanized (GI) Solar Structures", title: "Hot Dip Galvanized (GI) Solar Structures", description: "Hot-dip galvanized solar structures in IS 2062 steel with 80–120 micron zinc coating to IS 4759, for rooftop, PM Surya Ghar and ground-mount projects." },
+  "FRP Walkway": { h1: "FRP Walkway for Rooftop Solar Plants", title: "FRP Walkway for Rooftop Solar Plants", description: "Anti-slip, non-conductive FRP walkways for solar rooftops: 272 mm and 310 mm widths, 38 x 38 mm mesh, panel lengths up to 3.66 m, UV protected." },
+  "FRP Handrails": { h1: "FRP Handrails for Rooftop Solar Safety", title: "FRP Handrails for Rooftop Solar Safety", description: "UV-stabilized, non-conductive FRP handrails for edge protection on solar rooftops, in custom heights and spans, compatible with FRP walkways." },
+  "PM Surya Ghar Kit": { h1: "PM Surya Ghar Solar BOS Kit", title: "PM Surya Ghar Solar Kit (BOS Kit)", description: "Installation-ready PM Surya Ghar BOS kits: panels, inverter, mounting structure, ACDB/DCDB, cables and earthing in one pack, for installers and dealers." },
+  "Terrabond Earthing Kit": { h1: "Terrabond Solar Earthing Kit", title: "Solar Earthing Kit (Terrabond)", description: "Terrabond solar earthing kits: copper-bonded rods (14.2 / 17.2 mm, 250 micron copper), brass clamps and backfill compound, to IS 3043 and IEC 62561-2." },
+  "Inverters (Polycab & Deye)": { h1: "Polycab & Deye Solar Inverters", title: "Polycab & Deye Solar Inverter Supplier", description: "Polycab on-grid string inverters and Deye hybrid inverters from 3 kW to 100 kW, IP65 rated with Wi-Fi monitoring, for rooftop and commercial projects." },
+  "Solar Panels (Tier-1 PV Modules)": { h1: "Tier-1 Solar Panels (550–730 Wp)", title: "Tier-1 Solar Panels Supplier (550–730 Wp)", description: "Tier-1 bifacial N-type TOPCon and HJT solar modules from 550 Wp to 730 Wp, with IEC 61215 / 61730 and BIS / ALMM approvals, for rooftop and utility projects." },
+  "Solar Panels": { h1: "Tier-1 Solar Panels (550–730 Wp)", title: "Tier-1 Solar Panels Supplier (550–730 Wp)", description: "Tier-1 bifacial N-type TOPCon and HJT solar modules from 550 Wp to 730 Wp, with IEC 61215 / 61730 and BIS / ALMM approvals, for rooftop and utility projects." },
+};
+
+/** Products VRM supplies but does not make, with their makers' brands. */
+const RESOLD_BRANDS: Record<string, string[]> = {
+  "Inverters (Polycab & Deye)": ["Polycab", "Deye"],
+  "Solar Panels (Tier-1 PV Modules)": ["Waaree", "Adani", "Vikram Solar", "Loom Solar", "ReNew"],
+  "Solar Panels": ["Waaree", "Adani", "Vikram Solar", "Loom Solar", "ReNew"],
+};
+
 interface ProductDetailsPageProps {
   onNavigate: (page: "home" | "about" | "contact" | "careers" | "articles" | "products" | "services" | "quote" | "product-details", targetId?: string) => void;
   selectedProductTitle?: string;
@@ -330,7 +356,7 @@ export default function ProductDetailsPage({ onNavigate, selectedProductTitle: r
     },
     "RCC Roof MMS": {
       title: "RCC Roof MMS",
-      subTitle: "Elevated Frame Flat Concrete Ground Solutions",
+      subTitle: "Elevated Frames for Flat Concrete Roofs",
       desc: "High-performance elevated solar mounting systems designed for commercial flat concrete rooftops, maximizing energy generation with rooftop solar mounting configurations while protecting waterproofing membranes.",
       material: "Structural Pre-Galvanized GP Steel & HDG Details",
       thickness: "RCC Roof System Pack Components",
@@ -352,7 +378,7 @@ export default function ProductDetailsPage({ onNavigate, selectedProductTitle: r
       features: [
         { name: "Wind Capability", val: "Up to 160 km/h (IS 875 Compliant)", icon: <Compass size={16} /> },
         { name: "Tilt Tolerance Range", val: "10° to 20° Fixed angle optimizing spatial density", icon: <Scale size={16} /> },
-        { name: "Framework", val: "Elevated Frame Flat Concrete Ground Solutions", icon: <Shield size={16} /> },
+        { name: "Framework", val: "Elevated frame for flat concrete roofs", icon: <Shield size={16} /> },
         { name: "RCC System Pack", val: "Pre-galvanized framing rails, customizable base anchorage & assembly guidelines", icon: <Settings size={16} /> },
         { name: "Installation type", val: "Ballast concrete block foundation / Chemical anchor bolt mounting", icon: <Hammer size={16} /> }
       ]
@@ -450,7 +476,7 @@ export default function ProductDetailsPage({ onNavigate, selectedProductTitle: r
       material: "High-Tensile Galvanized Steel & Aluminum details",
       thickness: "Pre-Engineered Pack Components",
       windSpeed: "Up to 180 km/h (IS 875 Compliant)",
-      tiltAngle: "5° to 12° Optimal Drainage",
+      tiltAngle: "5° to 12° (sloped for drainage)",
       standards: [
         "Carport MMS are designed to deliver high structural reliability with simplified on-site assembly.",
         "Layouts accommodate various module sizes, including portrait and landscape orientations.",
@@ -465,7 +491,7 @@ export default function ProductDetailsPage({ onNavigate, selectedProductTitle: r
       ],
       features: [
         { name: "Wind Capability", val: "Up to 180 km/h (IS 875 Compliant)", icon: <Compass size={16} /> },
-        { name: "Tilt Tolerance Range", val: "5° to 12° Optimal Drainage", icon: <Scale size={16} /> },
+        { name: "Tilt Tolerance Range", val: "5° to 12° (sloped for drainage)", icon: <Scale size={16} /> },
         { name: "Logistics", val: "Simplified Logistics & Architectural Integrity", icon: <Shield size={16} /> },
         { name: "Pre-Engineered Pack", val: "All modular hardware components packaged together for instant site anchoring", icon: <Settings size={16} /> },
         { name: "Installation type", val: "Concrete pier foundation anchor bolt mounting", icon: <Hammer size={16} /> }
@@ -479,8 +505,6 @@ export default function ProductDetailsPage({ onNavigate, selectedProductTitle: r
       thickness: "100 mm to 6 meters profile length flexibility",
       windSpeed: "FEA & Pull-Out Test Certified (up to 180 km/h)",
       tiltAngle: "Roof-parallel or 150 mm elevated bifacial clearance option",
-      seoTitle: "Aluminum Module Mounting Structure Manufacturer | VRM Structures",
-      seoDescription: "Industrial aluminum module mounting structures designed for trapezoidal, standing seam, and Klip-Lok rooftop solar power projects in India.",
       standards: [
         "Manufactured using premium-grade Aluminum 6005-T5 / 6063-T6 alloys for superior strength and durability.",
         "Anodized surface finish for exceptional corrosion resistance and extended service life.",
@@ -511,8 +535,6 @@ export default function ProductDetailsPage({ onNavigate, selectedProductTitle: r
       thickness: "100 mm to 6 meters profile length flexibility",
       windSpeed: "FEA & Pull-Out Test Certified (up to 180 km/h)",
       tiltAngle: "Roof-parallel or 150 mm elevated bifacial clearance option",
-      seoTitle: "Aluminum Module Mounting Structure Manufacturer | VRM Structures",
-      seoDescription: "Industrial aluminum module mounting structures designed for trapezoidal, standing seam, and Klip-Lok rooftop solar power projects in India.",
       standards: [
         "Manufactured using premium-grade Aluminum 6005-T5 / 6063-T6 alloys for superior strength and durability.",
         "Anodized surface finish for exceptional corrosion resistance and extended service life.",
@@ -753,8 +775,6 @@ export default function ProductDetailsPage({ onNavigate, selectedProductTitle: r
       thickness: "14.2mm / 17.2mm rod diameters",
       windSpeed: "N/A",
       tiltAngle: "Vertical earth-pit insertion",
-      seoTitle: "Terrabond Solar Earthing Kit Manufacturer | VRM Structures",
-      seoDescription: "Certified Terrabond solar plant earthing kits ensuring electrical safety and compliance for rooftop and ground-mount installations.",
       standards: [
         "IS 3043 code of practice for solar earthing kit compliance & plant electrical safety",
         "IEC 62561-2 standard for lightning arrestor grounding and protection components",
@@ -769,7 +789,7 @@ export default function ProductDetailsPage({ onNavigate, selectedProductTitle: r
       ],
       features: [
         { name: "Material Grade", val: "Copper coating minimum 250 microns", icon: <Scale size={16} /> },
-        { name: "Wind Rating", val: "Solid structural build for long service life", icon: <Compass size={16} /> },
+        { name: "Service Life", val: "Maintenance-free, 15+ years in harsh soil", icon: <Compass size={16} /> },
         { name: "Corrosion Grade", val: "Excellent soil-corrosion resistance", icon: <Shield size={16} /> },
         { name: "Fasteners", val: "Heavy-duty brass U-bolt clamps", icon: <Settings size={16} /> },
         { name: "Installation type", val: "Soil boring and chemical compound fill", icon: <Hammer size={16} /> }
@@ -783,8 +803,6 @@ export default function ProductDetailsPage({ onNavigate, selectedProductTitle: r
       thickness: "14.2mm / 17.2mm rod diameters",
       windSpeed: "N/A",
       tiltAngle: "Vertical earth-pit insertion",
-      seoTitle: "Terrabond Solar Earthing Kit Manufacturer | VRM Structures",
-      seoDescription: "Certified Terrabond solar plant earthing kits ensuring electrical safety and compliance for rooftop and ground-mount installations.",
       standards: [
         "IS 3043 code of practice for solar earthing kit compliance & plant electrical safety",
         "IEC 62561-2 standard for lightning arrestor grounding and protection components",
@@ -799,7 +817,7 @@ export default function ProductDetailsPage({ onNavigate, selectedProductTitle: r
       ],
       features: [
         { name: "Material Grade", val: "Copper coating minimum 250 microns", icon: <Scale size={16} /> },
-        { name: "Wind Rating", val: "Solid structural build for long service life", icon: <Compass size={16} /> },
+        { name: "Service Life", val: "Maintenance-free, 15+ years in harsh soil", icon: <Compass size={16} /> },
         { name: "Corrosion Grade", val: "Excellent soil-corrosion resistance", icon: <Shield size={16} /> },
         { name: "Fasteners", val: "Heavy-duty brass U-bolt clamps", icon: <Settings size={16} /> },
         { name: "Installation type", val: "Soil boring and chemical compound fill", icon: <Hammer size={16} /> }
@@ -813,8 +831,6 @@ export default function ProductDetailsPage({ onNavigate, selectedProductTitle: r
       thickness: "3kW - 100kW",
       windSpeed: "N/A",
       tiltAngle: "Wall-mount vertical alignment",
-      seoTitle: "Solar Inverters – Polycab & Deye Supplier | VRM Structures",
-      seoDescription: "Authorized supply of Polycab and Deye grid-tied solar inverters for residential, commercial, and utility-scale projects in India.",
       standards: [
         "Polycab grid-tied solar inverter models with dual MPPT trackers to optimize solar power harvest",
         "Polycab string inverter options built with wide input voltage range for commercial solar rooftop installations",
@@ -853,8 +869,6 @@ export default function ProductDetailsPage({ onNavigate, selectedProductTitle: r
       thickness: "550Wp - 730Wp",
       windSpeed: "2400 Pa Wind / 5400 Pa Snow Load",
       tiltAngle: "Rooftop, Ground-Mount & Tracker Compatible",
-      seoTitle: "Tier-1 Solar Panels & Bifacial PV Modules | VRM Structures",
-      seoDescription: "High-efficiency 550Wp to 730Wp bifacial solar panels and PV modules for utility, commercial, and rooftop solar installations in India.",
       standards: [
         "Certified Tier-1 dual-glass bifacial monocrystalline solar PV modules (550Wp to 730Wp ratings)",
         "Advanced N-Type TOPCon and Heterojunction (HJT) cell technology delivering module efficiency up to 23.5%",
@@ -883,8 +897,6 @@ export default function ProductDetailsPage({ onNavigate, selectedProductTitle: r
       thickness: "550Wp - 730Wp",
       windSpeed: "2400 Pa Wind / 5400 Pa Snow Load",
       tiltAngle: "Rooftop, Ground-Mount & Tracker Compatible",
-      seoTitle: "Tier-1 Solar Panels & Bifacial PV Modules | VRM Structures",
-      seoDescription: "High-efficiency 550Wp to 730Wp bifacial solar panels and PV modules for utility, commercial, and rooftop solar installations in India.",
       standards: [
         "Certified Tier-1 dual-glass bifacial monocrystalline solar PV modules (550Wp to 730Wp ratings)",
         "Advanced N-Type TOPCon and Heterojunction (HJT) cell technology delivering module efficiency up to 23.5%",
@@ -926,26 +938,30 @@ export default function ProductDetailsPage({ onNavigate, selectedProductTitle: r
 
   const productDetails = matchedEntry ? matchedEntry[1] : ((productDetailsMap as any)[selectedProductTitle] || (productDetailsMap as any)["Aluminum Module Mounting Structure"] || productDetailsMap["RCC Roof MMS"]);
   const currentSlug = slugify(selectedProductTitle || "") || "aluminum-module-mounting-structure";
+  const productSeo = PRODUCT_SEO[productDetails.title];
 
   return (
     <div className="bg-[#F5F1EE] overflow-x-hidden font-sans text-slate-800 antialiased selection:bg-rose-200 selection:text-rose-900 flex flex-col min-h-screen">
       <SEO
-        title={productDetails.seoTitle || `${productDetails.title} Manufacturer | VRM Structures`}
-        description={productDetails.seoDescription || productDetails.desc}
+        title={productSeo?.title || `${productDetails.title} Manufacturer`}
+        description={productSeo?.description || productDetails.desc}
         canonicalUrl={routeToUrl(`products/${currentSlug}`)}
         schema={{
           "@context": "https://schema.org",
           "@type": "Product",
-          "name": productDetails.title,
-          "description": productDetails.seoDescription || productDetails.desc,
-          "brand": {
-            "@type": "Brand",
-            "name": "VRM Structures"
-          },
-          "manufacturer": {
-            "@type": "Organization",
-            "name": "VRM Structures India Private Limited"
-          }
+          "name": productSeo?.h1 || productDetails.title,
+          "description": productSeo?.description || productDetails.desc,
+          "url": routeToUrl(`products/${currentSlug}`),
+          "material": productDetails.material,
+          ...(RESOLD_BRANDS[productDetails.title]
+            ? {
+                // Supplied by VRM, made by another company.
+                "brand": RESOLD_BRANDS[productDetails.title].map((name) => ({ "@type": "Brand", name })),
+              }
+            : {
+                "brand": { "@type": "Brand", "name": "VRM Structures" },
+                "manufacturer": { "@id": "https://vrmstructures.in/#organization" },
+              }),
         }}
       />
 
@@ -964,7 +980,7 @@ export default function ProductDetailsPage({ onNavigate, selectedProductTitle: r
             transition={{ duration: 0.4, delay: 0.06, ease: "easeOut" }}
             className="font-display text-[26px] sm:text-[30px] leading-[36px] sm:leading-[40px] font-bold tracking-tight text-white max-w-4xl drop-shadow-[0_2px_10px_rgba(0,0,0,0.6)]"
           >
-            {productDetails.title}
+            {productSeo?.h1 || productDetails.title}
           </motion.h1>
 
           {/* Description */}
@@ -974,7 +990,7 @@ export default function ProductDetailsPage({ onNavigate, selectedProductTitle: r
             transition={{ duration: 0.4, delay: 0.2, ease: "easeOut" }}
             className="font-sans text-slate-100 text-[15px] sm:text-[16px] leading-[24px] sm:leading-[26px] max-w-3xl mt-4 font-light px-4 drop-shadow-[0_1px_8px_rgba(0,0,0,0.6)]"
           >
-            Discover the engineering specifications, design compliances, and structural drawings for our industrial {productDetails.title} mounting solutions.
+            Engineering specifications, design standards and technical details for {productSeo?.h1 || productDetails.title}, made by VRM Structures in Chennai.
           </motion.p>
         </div>
 
@@ -1154,7 +1170,7 @@ export default function ProductDetailsPage({ onNavigate, selectedProductTitle: r
                     name: "Waaree Energies",
                     tag: "Tier-1 ALMM List-I",
                     desc: "Aditya & Elite Dual-Glass (540Wp - 700Wp+)",
-                    datasheet: "/datasheet-waaree-elite-n-type-bifacial-555W-560W-565W-570W-585W.pdf",
+                    datasheet: "/datasheet-waaree-elite-n-type-bifacial-555W-560W-565W-570W-575W-580W-585W.pdf",
                     logo: (
                       <div className="flex flex-col items-center justify-center">
                         <div className="flex items-center gap-2">

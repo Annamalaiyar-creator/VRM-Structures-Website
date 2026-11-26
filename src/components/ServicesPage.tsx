@@ -291,7 +291,7 @@ export default function ServicesPage({ onNavigate }: ServicesPageProps) {
                   pills: ["Authorized Dealer", "Aditya & Elite", "540Wp - 700Wp+"],
                   image: "/images/hero-products.jpg",
                   actionText: "Inquire Waaree",
-                  datasheetUrl: "/datasheet-waaree-elite-n-type-bifacial-555W-560W-565W-570W-585W.pdf"
+                  datasheetUrl: "/datasheet-waaree-elite-n-type-bifacial-555W-560W-565W-570W-575W-580W-585W.pdf"
                 }
               ].map((item, index) => {
                 const splitTitle = (title: string) => {
@@ -371,6 +371,7 @@ export default function ServicesPage({ onNavigate }: ServicesPageProps) {
                             rel="noopener noreferrer"
                             className="px-3.5 py-3.5 rounded-2xl bg-white hover:bg-slate-100 text-slate-700 border border-slate-200/80 transition-colors flex items-center justify-center"
                             title="Download Datasheet"
+                            aria-label={`${item.title} datasheet (PDF)`}
                           >
                             <FileText size={15} />
                           </a>
